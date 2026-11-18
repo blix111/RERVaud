@@ -2,7 +2,12 @@
 #include "led_driver.h"
 #include "display_driver.h"
 #include "colors.h"
+#include "stations.h"
+#include "shared_state.h"
 #include "config.h"
+#include <WiFi.h>
+#include <WebServer.h>
+#include <Preferences.h>
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
@@ -64,12 +69,81 @@ namespace {
   bool modeToutAllume = false;
   uint8_t couleurIdx = 0;
   int lastEncA = HIGH;
+  uint32_t lastStepCalib = 0;
 
   bool encBtnDown = false; uint32_t encBtnDownAt = 0; bool encBtnLongFired = false;
   bool navBtnDown = false; uint32_t navBtnDownAt = 0; bool navBtnLongFired = false;
 
   char lineBuf[160];
   size_t lineLen = 0;
+
+  WebServer* calibServer = nullptr;
+
+  void loadFromCompiledStations() {
+    memset(calibGares, 0, sizeof(calibGares));
+    memset(calibTroncons, 0, sizeof(calibTroncons));
+    for (uint8_t g = 0; g < NB_GARES; g++) {
+      const Gare& ga = GARES[g];
+      if (ga.led.bus >= NUM_BUSES || ga.led.index >= MAX_LEDS_PER_BUS) continue;
+      CalibGareEntry& dst = calibGares[ga.led.bus][ga.led.index];
+      dst.used = true;
+      strlcpy(dst.code, ga.nomCourt, sizeof(dst.code));
+      strlcpy(dst.apiName, ga.nomAPI, sizeof(dst.apiName));
+      dst.pivot = ga.pivotAPI;
+    }
+    for (uint8_t t = 0; t < NB_TRONCONS; t++) {
+      const Troncon& tr = TRONCONS[t];
+      if (tr.led.bus >= NUM_BUSES || tr.led.index >= MAX_LEDS_PER_BUS) continue;
+      if (calibGares[tr.led.bus][tr.led.index].used) continue;
+      CalibTronconEntry& dst = calibTroncons[tr.led.bus][tr.led.index];
+      dst.used = (tr.nbLignes > 0);
+      dst.nbLignes = (tr.nbLignes <= 4) ? tr.nbLignes : 4;
+      for (uint8_t l = 0; l < dst.nbLignes; l++) {
+        uint8_t lid = (uint8_t)tr.lignes[l].ligne;
+        strlcpy(dst.ligneCodes[l], (lid < (uint8_t)LigneId::COUNT) ? LIGNE_NOMS[lid] : "R1", sizeof(dst.ligneCodes[l]));
+        uint8_t am = tr.lignes[l].idxGareAmont;
+        uint8_t av = tr.lignes[l].idxGareAval;
+        strlcpy(dst.gareAmontCodes[l], (am < NB_GARES) ? GARES[am].nomCourt : "", sizeof(dst.gareAmontCodes[l]));
+        strlcpy(dst.gareAvalCodes[l],  (av < NB_GARES) ? GARES[av].nomCourt : "", sizeof(dst.gareAvalCodes[l]));
+      }
+    }
+  }
+
+  String buildColorsJsonString() {
+    String s = "{\"altMs\":";
+    s += String(g_ligneAlternationPeriodMs);
+    s += ",\"lines\":[";
+    for (size_t i = 0; i < (size_t)LigneId::COUNT; i++) {
+      if (i > 0) s += ",";
+      const LigneSpec& sp = LIGNE_SPECS[i];
+      char buf[128];
+      snprintf(buf, sizeof(buf),
+               "{\"code\":\"%s\",\"r1\":%u,\"g1\":%u,\"b1\":%u,\"r2\":%u,\"g2\":%u,\"b2\":%u,\"alt\":%s}",
+               LIGNE_NOMS[i],
+               sp.primaire.r, sp.primaire.g, sp.primaire.b,
+               sp.secondaire.r, sp.secondaire.g, sp.secondaire.b,
+               sp.alterne ? "true" : "false");
+      s += buf;
+    }
+    s += "]}";
+    return s;
+  }
+
+  String buildSettingsJsonString() {
+    String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+    char buf[384];
+    snprintf(buf, sizeof(buf),
+             "{\"pollFastMs\":%u,\"pollNormalMs\":%u,\"apiLimit\":%u,"
+             "\"stationWindowSec\":%u,\"gareLookaheadSec\":%u,\"gareNoTrainMode\":%u,"
+             "\"blinkBaseHalfMs\":%u,\"blinkStepPerMinMs\":%u,\"scrollSpeedMs\":%u,"
+             "\"travelScalePct\":%u,\"ledBright\":%u,\"dispBright\":%u,\"ip\":\"%s\"}",
+             g_settings.pollFastMs, g_settings.pollNormalMs, g_settings.apiLimit,
+             g_settings.stationWindowSec, g_settings.gareLookaheadSec, g_settings.gareNoTrainMode,
+             g_settings.blinkBaseHalfMs, g_settings.blinkStepPerMinMs, g_settings.scrollSpeedMs,
+             g_settings.travelScalePct, LedDriver::getBrightnessPercent(), DisplayDriver::getBrightness(),
+             ip.c_str());
+    return String(buf);
+  }
 
   void underscoreToSpace(char* s) {
     for (char* p = s; *p; p++) if (*p == '_') *p = ' ';
@@ -597,12 +671,15 @@ namespace {
       if (!arg) { Serial.println("Usage: REVIEW <code>|OFF"); return; }
       if (strcasecmp(arg, "OFF") == 0) {
         reviewCode[0] = '\0';
+        g_studioLedOverride.store(false);
         Serial.println("OK: mode revue desactive.");
       } else {
         strlcpy(reviewCode, arg, sizeof(reviewCode));
+        g_studioLedOverride.store(true);
         Serial.printf("OK: mode revue active pour %s\n", reviewCode);
+        refreshPreview();
       }
-      refreshPreview();
+      return;
     } else if (strcasecmp(cmd, "LINE") == 0) {
       char* code = strtok(NULL, " ");
       char* verb = strtok(NULL, " ");
@@ -640,6 +717,7 @@ namespace {
       int idx = atoi(idxStr);
       if (bus < 0 || bus >= NUM_BUSES || idx < 0 || idx >= MAX_LEDS_PER_BUS) { Serial.println("Erreur: hors limites."); return; }
       busActif = (uint8_t)bus; ledPos = (uint16_t)idx;
+      g_studioLedOverride.store(true);
       applyArmedCodesToCurrent();
       refreshPreview();
     } else if (strcasecmp(cmd, "EXPORT") == 0) {
@@ -659,9 +737,242 @@ namespace {
       } else {
         Serial.println("Usage: CLEAR ALL CONFIRM  (effacement total, action irreversible)");
       }
+    } else if (strcasecmp(cmd, "LOADDEFAULT") == 0) {
+      loadFromCompiledStations();
+      Serial.println("OK: gares et troncons recharges depuis stations.cpp.");
+      refreshPreview();
+    } else if (strcasecmp(cmd, "COLORSJSON") == 0) {
+      Serial.print("@COLORS@");
+      Serial.println(buildColorsJsonString());
+    } else if (strcasecmp(cmd, "COLOR") == 0) {
+      char* code = strtok(NULL, " ");
+      char* r1s  = strtok(NULL, " ");
+      char* g1s  = strtok(NULL, " ");
+      char* b1s  = strtok(NULL, " ");
+      char* r2s  = strtok(NULL, " ");
+      char* g2s  = strtok(NULL, " ");
+      char* b2s  = strtok(NULL, " ");
+      char* alts = strtok(NULL, " ");
+      LigneId id;
+      if (!code || !r1s || !g1s || !b1s || !ligneIdFromCode(code, id)) {
+        Serial.println("Usage: COLOR <ligne> <r1> <g1> <b1> [r2 g2 b2 0|1]");
+        return;
+      }
+      LineColor c1{(uint8_t)atoi(r1s), (uint8_t)atoi(g1s), (uint8_t)atoi(b1s)};
+      LineColor c2 = c1;
+      bool alt = false;
+      if (r2s && g2s && b2s) {
+        c2 = {(uint8_t)atoi(r2s), (uint8_t)atoi(g2s), (uint8_t)atoi(b2s)};
+        alt = (alts && atoi(alts) != 0);
+      }
+      Colors::setSpec(id, c1, c2, alt);
+      Serial.printf("OK: couleur %s mise a jour (%u,%u,%u)\n", code, c1.r, c1.g, c1.b);
+      if (reviewCode[0] != '\0') renderReview();
+    } else if (strcasecmp(cmd, "ALTPERIOD") == 0) {
+      char* ms = strtok(NULL, " ");
+      if (ms) {
+        uint32_t v = (uint32_t)atoi(ms);
+        if (v >= 200 && v <= 10000) g_ligneAlternationPeriodMs = v;
+        Serial.printf("OK: periode d'alternance = %u ms\n", (unsigned)g_ligneAlternationPeriodMs);
+      }
+    } else if (strcasecmp(cmd, "COLORSAVE") == 0) {
+      Colors::saveToNvs();
+      Serial.println("OK: couleurs sauvegardees en NVS.");
+    } else if (strcasecmp(cmd, "COLORRESET") == 0) {
+      Colors::resetDefaults();
+      Serial.println("OK: couleurs reinitialisees par defaut.");
+      if (reviewCode[0] != '\0') renderReview();
+    } else if (strcasecmp(cmd, "SETTINGSJSON") == 0) {
+      Serial.print("@SETTINGS@");
+      Serial.println(buildSettingsJsonString());
+    } else if (strcasecmp(cmd, "SET") == 0) {
+      char* key = strtok(NULL, " ");
+      char* val = strtok(NULL, " ");
+      if (!key || !val) { Serial.println("Usage: SET <key> <val>"); return; }
+      int v = atoi(val);
+      if      (strcasecmp(key, "pollFastMs") == 0)        g_settings.pollFastMs = (uint16_t)constrain(v, 5, 5000);
+      else if (strcasecmp(key, "pollNormalMs") == 0)      g_settings.pollNormalMs = (uint16_t)constrain(v, 20, 10000);
+      else if (strcasecmp(key, "apiLimit") == 0)          g_settings.apiLimit = (uint8_t)constrain(v, 5, 30);
+      else if (strcasecmp(key, "stationWindowSec") == 0)  g_settings.stationWindowSec = (uint16_t)constrain(v, 10, 300);
+      else if (strcasecmp(key, "gareLookaheadSec") == 0)  g_settings.gareLookaheadSec = (uint16_t)constrain(v, 60, 7200);
+      else if (strcasecmp(key, "gareNoTrainMode") == 0)   g_settings.gareNoTrainMode = (uint8_t)constrain(v, 0, 2);
+      else if (strcasecmp(key, "blinkBaseHalfMs") == 0)   g_settings.blinkBaseHalfMs = (uint16_t)constrain(v, 150, 2000);
+      else if (strcasecmp(key, "blinkStepPerMinMs") == 0) g_settings.blinkStepPerMinMs = (uint16_t)constrain(v, 10, 400);
+      else if (strcasecmp(key, "scrollSpeedMs") == 0)     g_settings.scrollSpeedMs = (uint16_t)constrain(v, 60, 1000);
+      else if (strcasecmp(key, "travelScalePct") == 0)    g_settings.travelScalePct = (uint16_t)constrain(v, 25, 300);
+      else if (strcasecmp(key, "ledBright") == 0) {
+        LedDriver::setBrightnessPercent((uint8_t)constrain(v, 0, 100));
+        LedDriver::showAll();
+      } else if (strcasecmp(key, "dispBright") == 0) {
+        DisplayDriver::setBrightness((uint8_t)constrain(v, 0, 15));
+      }
+      Serial.printf("OK: %s = %d\n", key, v);
+    } else if (strcasecmp(cmd, "SAVESETTINGS") == 0) {
+      SharedState::saveSettings();
+      LedDriver::saveBrightness();
+      DisplayDriver::saveBrightness();
+      Serial.println("OK: parametres sauvegardes en NVS.");
+    } else if (strcasecmp(cmd, "RESETSETTINGS") == 0) {
+      SharedState::resetSettings();
+      Serial.println("OK: parametres reinitialises.");
+    } else if (strcasecmp(cmd, "PIXEL") == 0) {
+      char* bs = strtok(NULL, " ");
+      char* is = strtok(NULL, " ");
+      char* rs = strtok(NULL, " ");
+      char* gs = strtok(NULL, " ");
+      char* bls = strtok(NULL, " ");
+      if (!bs || !is || !rs || !gs || !bls) return;
+      uint8_t b = (uint8_t)atoi(bs);
+      uint16_t idx = (uint16_t)atoi(is);
+      g_studioLedOverride.store(true);
+      LedDriver::setPixel(b, idx, (uint8_t)atoi(rs), (uint8_t)atoi(gs), (uint8_t)atoi(bls));
+      LedDriver::show(b);
+      Serial.printf("OK: PIXEL %u %u\n", b, idx);
+    } else if (strcasecmp(cmd, "CLEARLEDS") == 0) {
+      reviewCode[0] = '\0';
+      g_studioLedOverride.store(true);
+      LedDriver::clearAll();
+      LedDriver::showAll();
+      Serial.println("OK: LEDs eteintes.");
+    } else if (strcasecmp(cmd, "REBOOT") == 0) {
+      Serial.println("OK: redemarrage...");
+      delay(200);
+      ESP.restart();
     } else {
       Serial.println("Commande inconnue. Tapez HELP.");
     }
+  }
+
+  void sendCorsJson(int code, const String& body) {
+    if (!calibServer) return;
+    calibServer->sendHeader("Access-Control-Allow-Origin", "*");
+    calibServer->sendHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    calibServer->sendHeader("Access-Control-Allow-Headers", "Content-Type");
+    calibServer->send(code, "application/json; charset=utf-8", body);
+  }
+
+  void startCalibHttpServer() {
+    Preferences prefs;
+    prefs.begin("trainboard", true);
+    String s = prefs.getString("ssid", "");
+    String p = prefs.getString("pass", "");
+    prefs.end();
+
+    if (s.length() > 0) {
+      WiFi.mode(WIFI_STA);
+      WiFi.begin(s.c_str(), p.c_str());
+      uint32_t t0 = millis();
+      while (WiFi.status() != WL_CONNECTED && millis() - t0 < 8000) {
+        delay(100);
+      }
+    }
+    if (WiFi.status() != WL_CONNECTED) {
+      WiFi.mode(WIFI_AP);
+      WiFi.softAP("TrainBoard-Calib");
+      Serial.printf("Wi-Fi AP Calibration: TrainBoard-Calib | IP: %s\n", WiFi.softAPIP().toString().c_str());
+    } else {
+      Serial.printf("Wi-Fi Connecte (%s) | IP Calibration: %s\n", s.c_str(), WiFi.localIP().toString().c_str());
+    }
+
+    if (!calibServer) calibServer = new WebServer(80);
+
+    calibServer->on("/api/all", HTTP_GET, []() {
+      uint16_t nbG, nbT; countTags(nbG, nbT);
+      String out = "{\"bus\":" + String(busActif) +
+                   ",\"index\":" + String(ledPos) +
+                   ",\"review\":\"" + String(reviewCode) + "\"" +
+                   ",\"totals\":{\"gares\":" + String(nbG) + ",\"troncons\":" + String(nbT) + "}" +
+                   ",\"colors\":" + buildColorsJsonString() +
+                   ",\"settings\":" + buildSettingsJsonString() + "}";
+      sendCorsJson(200, out);
+    });
+
+    calibServer->on("/api/map", HTTP_GET, []() {
+      calibServer->sendHeader("Access-Control-Allow-Origin", "*");
+      calibServer->setContentLength(CONTENT_LENGTH_UNKNOWN);
+      calibServer->send(200, "application/json; charset=utf-8", "");
+      String chunk = "{\"gares\":[";
+      bool first = true;
+      for (int bus = 0; bus < NUM_BUSES; bus++) {
+        for (int i = 0; i < MAX_LEDS_PER_BUS; i++) {
+          CalibGareEntry& g = calibGares[bus][i];
+          if (!g.used) continue;
+          if (!first) chunk += ",";
+          first = false;
+          char esc[64]; jsonEscape(g.apiName, esc, sizeof(esc));
+          char b[160];
+          snprintf(b, sizeof(b), "{\"bus\":%d,\"index\":%d,\"code\":\"%s\",\"api\":\"%s\",\"pivot\":%s}",
+                   bus, i, g.code, esc, g.pivot ? "true" : "false");
+          chunk += b;
+          if (chunk.length() > 1024) { calibServer->sendContent(chunk); chunk = ""; }
+        }
+      }
+      chunk += "],\"troncons\":[";
+      first = true;
+      for (int bus = 0; bus < NUM_BUSES; bus++) {
+        for (int i = 0; i < MAX_LEDS_PER_BUS; i++) {
+          CalibTronconEntry& t = calibTroncons[bus][i];
+          if (!t.used) continue;
+          if (!first) chunk += ",";
+          first = false;
+          char b[64];
+          snprintf(b, sizeof(b), "{\"bus\":%d,\"index\":%d,\"lignes\":[", bus, i);
+          chunk += b;
+          for (int j = 0; j < t.nbLignes; j++) {
+            char lb[96];
+            snprintf(lb, sizeof(lb), "{\"code\":\"%s\",\"amont\":\"%s\",\"aval\":\"%s\"}%s",
+                     t.ligneCodes[j], fmtGare(t.gareAmontCodes[j]), fmtGare(t.gareAvalCodes[j]),
+                     (j < t.nbLignes - 1) ? "," : "");
+            chunk += lb;
+          }
+          chunk += "]}";
+          if (chunk.length() > 1024) { calibServer->sendContent(chunk); chunk = ""; }
+        }
+      }
+      chunk += "]}";
+      if (chunk.length() > 0) calibServer->sendContent(chunk);
+    });
+
+    calibServer->on("/api/cmd", HTTP_ANY, []() {
+      if (calibServer->method() == HTTP_OPTIONS) {
+        sendCorsJson(200, "{}");
+        return;
+      }
+      String c = calibServer->arg("c");
+      if (c.length() == 0 && calibServer->hasArg("plain")) {
+        c = calibServer->arg("plain");
+      }
+      int start = 0;
+      while (start < (int)c.length()) {
+        int nl = c.indexOf('\n', start);
+        if (nl < 0) nl = c.length();
+        String sub = c.substring(start, nl);
+        sub.trim();
+        if (sub.length() > 0) {
+          char buf[160];
+          strlcpy(buf, sub.c_str(), sizeof(buf));
+          processLine(buf);
+        }
+        start = nl + 1;
+      }
+      sendCorsJson(200, "{\"ok\":true}");
+    });
+
+    calibServer->onNotFound([]() {
+      if (calibServer->method() == HTTP_OPTIONS) {
+        sendCorsJson(200, "{}");
+        return;
+      }
+      calibServer->sendHeader("Access-Control-Allow-Origin", "*");
+      calibServer->send(200, "text/html; charset=utf-8",
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>TrainBoard Studio</title></head><body style='background:#0f172a;color:#f8fafc;font-family:sans-serif;padding:24px'>"
+        "<h2>TrainBoard Calibration & Live Studio Actif</h2>"
+        "<p>Serveur HTTP API prêt sur cette adresse IP. Ouvrez <code>tools/calib_web/index.html</code> et connectez-vous à cette IP (ou en USB).</p>"
+        "</body></html>");
+    });
+
+    calibServer->begin();
   }
 
   void pollSerial() {
@@ -681,8 +992,8 @@ namespace {
 
 namespace CalibTool {
   void begin() {
-    memset(calibGares, 0, sizeof(calibGares));
-    memset(calibTroncons, 0, sizeof(calibTroncons));
+    SharedState::begin();
+    loadFromCompiledStations();
     memset(armedLines, 0, sizeof(armedLines));
     reviewCode[0] = '\0';
 
@@ -694,27 +1005,29 @@ namespace CalibTool {
     lastEncA = digitalRead(PIN_ENCODER_A);
 
     DisplayDriver::begin();
-    DisplayDriver::showText("CFF ");
-    delay(1000);
+    DisplayDriver::showText("CAL ");
+    startCalibHttpServer();
 
-    Serial.println("=== TRAINBOARD CAL : OUTIL DE CALIBRATION / COLLECTE ===");
+    Serial.println("=== TRAINBOARD CAL : STUDIO CALIBRATION / COULEURS / SETTINGS ===");
     Serial.println("Tapez HELP pour la liste des commandes.");
     refreshPreview();
   }
 
   void loop() {
-    static uint32_t lastEncTime = 0;
     int curA = digitalRead(PIN_ENCODER_A);
-    if (curA != lastEncA && curA == LOW && (millis() - lastEncTime > 5)) {
-      lastEncTime = millis();
-      int dir = (digitalRead(PIN_ENCODER_B) == HIGH) ? 1 : -1;
-      if (!modeToutAllume) {
-        ledPos = (ledPos + dir + MAX_LEDS_PER_BUS) % MAX_LEDS_PER_BUS;
-        applyArmedCodesToCurrent();
-      } else {
-        couleurIdx = (couleurIdx + dir + 4) % 4;
+    if (lastEncA == HIGH && curA == LOW) {
+      uint32_t now = millis();
+      if (now - lastStepCalib >= 25) {
+        lastStepCalib = now;
+        int dir = (digitalRead(PIN_ENCODER_B) == HIGH) ? 1 : -1;
+        if (!modeToutAllume) {
+          ledPos = (ledPos + dir + MAX_LEDS_PER_BUS) % MAX_LEDS_PER_BUS;
+          applyArmedCodesToCurrent();
+        } else {
+          couleurIdx = (couleurIdx + dir + 4) % 4;
+        }
+        refreshPreview();
       }
-      refreshPreview();
     }
     lastEncA = curA;
 
@@ -752,10 +1065,21 @@ namespace CalibTool {
     }
 
     pollSerial();
+    if (calibServer) calibServer->handleClient();
   }
 
   void run() {
     begin();
     while (true) loop();
+  }
+
+  void beginBackground() {
+    loadFromCompiledStations();
+    memset(armedLines, 0, sizeof(armedLines));
+    reviewCode[0] = '\0';
+  }
+
+  void pollBackground() {
+    pollSerial();
   }
 }

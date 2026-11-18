@@ -1,16 +1,20 @@
 #include "ntp_time.h"
+#include <Arduino.h>
 
 namespace {
-  bool synced = false;
+  bool started = false;
 }
 
 namespace NtpTime {
   void begin() {
-    // Phase 2 : configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org");
+    if (started) return;
+    configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.google.com");
+    started = true;
   }
 
   bool isSynced() {
-    return synced;
+    // Synchronisé quand l'heure dépasse 2020 (epoch par défaut = 1970)
+    return started && time(nullptr) > 1577836800;
   }
 
   time_t now() {

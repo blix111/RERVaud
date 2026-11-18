@@ -1,6 +1,8 @@
 #pragma once
 
 namespace ModeLive {
-  void begin();
-  void render(); // Phase 3 : lecture de SharedData sous mutex, rendu LED/afficheur
+  void begin(bool trainMode = true);
+  void render();
+  void handleEncoderDelta(int delta);
+  void handleEncoderButton();
 }

@@ -1,6 +1,8 @@
 #pragma once
+#include <Arduino.h>
 
 namespace ModePax {
   void begin();
-  void render(); // Phase 3 : coloration gares/tronçons selon capacity1st/capacity2nd
+  void render();
+  void handleEncoderDelta(int delta);
 }

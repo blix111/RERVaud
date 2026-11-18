@@ -2,768 +2,1510 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>TrainBoard — Calibration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrainBoard Studio — Calibration, Couleurs, Settings & Comparateur Live CFF</title>
 <style>
   :root {
-    --bg: #14161a; --panel: #1e2127; --border: #30343c; --text: #e6e8eb;
-    --muted: #8a909c; --accent: #3b82f6; --ok: #22c55e; --warn: #f59e0b; --bad: #ef4444;
+    --bg: #0b1120;
+    --panel: #131c31;
+    --panel2: #1c2842;
+    --border: #2a3a5c;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #6366f1;
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --err: #ef4444;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-    background: var(--bg); color: var(--text); font-size: 14px;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
   }
   header {
-    display: flex; align-items: center; gap: 12px; padding: 10px 16px;
-    background: var(--panel); border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 10; flex-wrap: wrap;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
-  header h1 { font-size: 16px; margin: 0; margin-right: auto; }
-  button {
-    background: var(--accent); color: white; border: none; border-radius: 6px;
-    padding: 7px 14px; cursor: pointer; font-size: 13px;
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
-  button:hover { filter: brightness(1.1); }
-  button:disabled { background: #3a3d44; color: var(--muted); cursor: not-allowed; }
-  button.secondary { background: #3a3d44; }
-  button.danger { background: var(--bad); }
-  #connDot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); display: inline-block; }
-  #connDot.on { background: var(--ok); }
-  #banner {
-    background: var(--warn); color: #1a1a1a; padding: 8px 16px; display: none;
+  .brand h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.3px;
   }
-  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
-  @media (max-width: 950px) { main { grid-template-columns: 1fr; } }
-  .panel {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px; margin-bottom: 16px;
-  }
-  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
-  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-  label { color: var(--muted); font-size: 12px; min-width: 70px; }
-  input[type=text], input[type=number], select, textarea {
-    background: #0f1115; color: var(--text); border: 1px solid var(--border);
-    border-radius: 6px; padding: 6px 8px; font-size: 13px;
-  }
-  input[type=checkbox] { width: 16px; height: 16px; }
-  #posBig { font-size: 28px; font-weight: 700; }
-  .tagbox { padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 13px; }
-  .tag-none { background: #2a2d33; color: var(--muted); }
-  .tag-gare { background: #14331f; border: 1px solid var(--ok); }
-  .tag-troncon { background: #1c2a40; border: 1px solid var(--accent); }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; }
-  tr.clickable { cursor: pointer; }
-  tr.clickable:hover { background: #262a31; }
-  .tablewrap { max-height: 240px; overflow-y: auto; }
-  #logPanel {
-    background: #0b0c0f; color: #9fe39f; font-family: Consolas, monospace; font-size: 11px;
-    height: 160px; overflow-y: auto; white-space: pre-wrap; padding: 8px; border-radius: 6px;
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--panel2);
     border: 1px solid var(--border);
   }
-  #exportOutput { width: 100%; height: 160px; font-family: Consolas, monospace; font-size: 12px; }
-  .swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); display: inline-block; vertical-align: middle; }
-  .hint { color: var(--muted); font-size: 11px; margin-top: 4px; }
-  details summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
-  .grow { flex: 1; min-width: 120px; }
-  tr.reviewing { outline: 1px solid var(--accent); background: #1c2a40; }
-  .ledstrip-bus { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
-  .ledstrip-bus .buslabel { width: 42px; color: var(--muted); font-size: 11px; flex-shrink: 0; }
-  .ledstrip { display: flex; flex-wrap: wrap; gap: 1px; flex: 1; }
-  .ledcell { width: 5px; height: 14px; background: #2a2d33; border-radius: 1px; }
-  .ledcell.gare { background: #565b64; }
-  .ledcell.tagged { outline: 1px solid rgba(255,255,255,.5); }
-  .ledcell.cursor { outline: 2px solid #fff; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 2px; background: #262a31;
-    border: 1px solid var(--border); border-radius: 10px; padding: 1px 4px 1px 8px;
-    margin: 1px 3px 1px 0; font-size: 11px;
+  .badge.ok { background: rgba(34,197,94,0.15); border-color: var(--ok); color: #86efac; }
+  .badge.warn { background: rgba(245,158,11,0.15); border-color: var(--warn); color: #fcd34d; }
+  .conn-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
   }
-  .chip button {
-    background: none; border: none; color: var(--bad); cursor: pointer;
-    padding: 0 3px; font-size: 13px; line-height: 1;
+  input, select, button, textarea {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 11px;
+    font-size: 13px;
+    font-family: inherit;
   }
-  .rowbtn-del {
-    background: var(--bad); color: white; border: none; border-radius: 4px;
-    padding: 3px 7px; font-size: 11px; cursor: pointer;
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
   }
-  input[type=range] { vertical-align: middle; }
+  button {
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  button:hover { border-color: var(--accent); background: #243456; }
+  button.primary { background: var(--accent2); border-color: #818cf8; color: #fff; }
+  button.primary:hover { background: #4f46e5; }
+  button.success { background: #16a34a; border-color: #22c55e; color: #fff; }
+  button.success:hover { background: #15803d; }
+  button.danger { background: #dc2626; border-color: #ef4444; color: #fff; }
+  nav.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #0e1628;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--panel); }
+  .tab-btn.active {
+    background: var(--panel);
+    color: var(--accent);
+    border-color: var(--border);
+  }
+  main { padding: 20px; max-width: 1480px; margin: 0 auto; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  @media (max-width: 960px) { .grid-2 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card p.sub { margin: -6px 0 14px 0; color: var(--muted); font-size: 13px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .line-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  }
+  .led-matrix {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 5px;
+    max-height: 440px;
+    overflow-y: auto;
+    padding: 6px;
+    background: #090e1a;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .led-cell {
+    padding: 6px 4px;
+    border-radius: 6px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    text-align: center;
+    cursor: pointer;
+    font-size: 11px;
+    user-select: none;
+  }
+  .led-cell:hover { border-color: var(--accent); }
+  .led-cell.selected { outline: 2px solid #fff; }
+  .led-cell.gare { border-color: var(--warn); font-weight: 700; }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-row label { font-weight: 600; }
+  .setting-row small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .progress-bar {
+    width: 110px;
+    height: 8px;
+    background: var(--panel2);
+    border-radius: 99px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .progress-fill { height: 100%; background: var(--accent); }
+  @keyframes blinkSlow { 0%,49%{opacity:1} 50%,100%{opacity:0.18} }
+  @keyframes blinkFast { 0%,49%{opacity:1} 50%,100%{opacity:0.1} }
+  .blink-1 { animation: blinkSlow 1.1s infinite; }
+  .blink-3 { animation: blinkSlow 0.65s infinite; }
+  .blink-5 { animation: blinkFast 0.26s infinite; }
+  pre.code-box {
+    background: #070b14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    overflow: auto;
+    max-height: 420px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 12px;
+    color: #cbd5e1;
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <span id="connDot"></span>
-  <h1>TrainBoard — Outil de calibration</h1>
-  <button id="connectBtn">Connecter (USB)</button>
-  <button id="disconnectBtn" class="secondary" disabled>Déconnecter</button>
-  <button id="refreshBtn" class="secondary" disabled>Rafraîchir</button>
+  <div class="brand">
+    <h1>TrainBoard Studio — RER Vaud</h1>
+    <span id="connStatus" class="badge warn">Mode Local (Carte non connectée)</span>
+  </div>
+  <div class="conn-bar">
+    <input type="text" id="ipInput" placeholder="IP ESP32 (ex: 192.168.1.45 ou 192.168.4.1)" style="width:230px">
+    <button class="primary" onclick="connectHttp()">Connecter par IP (Wi-Fi)</button>
+    <button class="primary" onclick="connectUsb()">Connecter par USB (WebSerial)</button>
+    <button onclick="sendCmd('CLEARLEDS')">Éteindre LEDs</button>
+  </div>
 </header>
 
-<div id="banner"></div>
+<nav class="tabs">
+  <button class="tab-btn active" onclick="openTab('tab-live', this)">1. Comparateur Temps Réel ("Vraie Vie" CFF vs PCB)</button>
+  <button class="tab-btn" onclick="openTab('tab-colors', this)">2. Couleurs des 14 Lignes (RGB & Alternance)</button>
+  <button class="tab-btn" onclick="openTab('tab-remap', this)">3. Remapping & Test Lignes / Gares</button>
+  <button class="tab-btn" onclick="openTab('tab-settings', this)">4. Settings API, Retards & Luminosité</button>
+  <button class="tab-btn" onclick="openTab('tab-export', this)">5. Console & Export C++ / CSV</button>
+</nav>
 
 <main>
-  <div>
-    <!-- Position -->
-    <div class="panel">
-      <h2>Position courante</h2>
-      <div id="posBig">Bus <span id="busLabel">-</span> · LED <span id="indexLabel">-</span></div>
-      <div class="row" style="margin-top:10px;">
-        <label>Bus</label>
-        <select id="busSelect" disabled></select>
-        <label>Index</label>
-        <input type="number" id="indexInput" min="0" value="0" disabled style="width:90px;">
-        <button id="gotoBtn" disabled>Aller</button>
-      </div>
-      <div class="row">
-        <button id="prevBtn" class="secondary" disabled>&larr; Préc. (↓)</button>
-        <button id="nextBtn" class="secondary" disabled>Suiv. (↑) &rarr;</button>
-        <button id="prevBusBtn" class="secondary" disabled>Bus préc. (←)</button>
-        <button id="nextBusBtn" class="secondary" disabled>Bus suiv. (→)</button>
-      </div>
-      <div class="hint">Flèches clavier = déplacement rapide (haut/bas = index, gauche/droite = bus), sauf dans un champ de texte.</div>
-      <div class="row" style="margin-top:10px;">
-        <label>Luminosité</label>
-        <input type="range" id="brightRange" min="0" max="255" value="30" disabled style="flex:1;min-width:120px;">
-        <span id="brightVal" style="min-width:32px;text-align:right;">30</span>
-      </div>
-      <div id="tagBox" class="tagbox tag-none">(non tagué)</div>
-      <div class="hint" id="totalsSmall"></div>
-    </div>
-
-    <!-- Taguer une gare -->
-    <div class="panel">
-      <h2>Taguer comme gare</h2>
-      <form id="stationForm">
-        <div class="row">
-          <label>Code (≤4)</label>
-          <input type="text" id="stCode" maxlength="4" required style="width:80px;">
-          <label>Nom API</label>
-          <input type="text" id="stApi" class="grow" placeholder="ex: Renens VD" required>
+  <!-- ==================== ONGLET 1 : COMPARATEUR VRAIE VIE ==================== -->
+  <section id="tab-live" class="tab-pane active">
+    <div class="card">
+      <h2>
+        <span>Comparateur Temps Réel — Trains CFF en circulation vs LEDs du PCB</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="liveLastUpdate" class="badge">Non rafraîchi</span>
+          <button class="primary" onclick="fetchRealLifeTrains()">Rafraîchir l'API CFF maintenant</button>
+          <button class="success" onclick="projectAllLiveTrainsToBoard()">Projeter tous ces trains sur la carte</button>
         </div>
-        <div class="row">
-          <input type="checkbox" id="stPivot"><label for="stPivot" style="min-width:auto;">Gare pivot (interrogée par l'API)</label>
+      </h2>
+      <p class="sub">
+        Interroge directement <code>transport.opendata.ch</code> pour toutes les gares du réseau, calcule la position réelle de chaque train entre sa gare de départ et sa prochaine gare, indique la LED exacte <code>(Bus, Index)</code> qui doit s'allumer et permet de tester chaque train sur la carte.
+      </p>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Ligne</th>
+              <th>Position / Tronçon réel</th>
+              <th>Destination</th>
+              <th>Horaires (Départ → Arrivée)</th>
+              <th>Retard & Clignotement</th>
+              <th>Progression</th>
+              <th>LED Cible PCB</th>
+              <th>Test Carte</th>
+            </tr>
+          </thead>
+          <tbody id="liveTrainsBody">
+            <tr><td colspan="8" style="text-align:center;color:var(--muted)">Cliquez sur « Rafraîchir l'API CFF maintenant » pour comparer avec le trafic réel.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>État en direct des 28 Gares (API Opendata)</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Gare CFF</th>
+              <th>LED Gare</th>
+              <th>Prochain Train RER</th>
+              <th>Heure Prévue</th>
+              <th>Retard</th>
+              <th>Destination</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="liveStationsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ONGLET 2 : COULEURS DES LIGNES ==================== -->
+  <section id="tab-colors" class="tab-pane">
+    <div class="card">
+      <h2>
+        <span>Éditeur de Couleurs des 14 Lignes RER Vaud</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="font-size:12px;color:var(--muted)">Période d'alternance (ms) :</label>
+          <input type="number" id="altPeriodInput" value="1500" min="200" max="10000" step="100" style="width:90px" onchange="sendCmd('ALTPERIOD '+this.value)">
+          <button class="success" onclick="saveAllColorsToBoard()">Sauvegarder dans l'ESP32 (NVS)</button>
+          <button onclick="resetDefaultColors()">Réinitialiser défaut</button>
         </div>
-        <div class="row">
-          <button type="submit" disabled id="stationSubmitBtn">Taguer cette LED</button>
-          <button type="button" class="danger" id="untagBtn" disabled>Retirer le tag</button>
+      </h2>
+      <p class="sub">
+        Ajustez la teinte exacte sur vos LEDs WS2812B : cliquez sur <b>« Tester sur PCB »</b> sur une ligne puis déplacez le sélecteur de couleur pour voir la ligne s'actualiser en temps réel sur la carte.
+      </p>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Ligne</th>
+              <th>Aperçu</th>
+              <th>Couleur Primaire</th>
+              <th>R / G / B Primaire</th>
+              <th>Alternance Bicolore</th>
+              <th>Couleur Secondaire</th>
+              <th>Actions en direct sur PCB</th>
+            </tr>
+          </thead>
+          <tbody id="colorsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ONGLET 3 : REMAPPING & TEST LIGNES ==================== -->
+  <section id="tab-remap" class="tab-pane">
+    <div class="grid-2">
+      <div class="card">
+        <h2>
+          <span>Inspection & Test d'une Ligne sur la Carte</span>
+          <select id="remapLineSelect" onchange="renderRemapView()"></select>
+        </h2>
+        <p class="sub">Vérifiez l'ordre des LEDs d'une ligne, faites circuler un train de test LED par LED, ou modifiez ses tronçons.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <button class="primary" onclick="previewSelectedLineOnBoard()">Allumer toute la ligne sur le PCB</button>
+          <button class="success" id="btnAnimLine" onclick="toggleLineAnimation()">Animer un train de test LED par LED</button>
+          <button onclick="sendCmd('REVIEW OFF');sendCmd('CLEARLEDS')">Arrêter l'aperçu</button>
         </div>
-      </form>
-    </div>
-
-    <!-- Lignes / tronçons -->
-    <div class="panel">
-      <h2>Peindre une ligne (tronçon)</h2>
-      <div class="row">
-        <label>Ligne</label>
-        <select id="ligneSelect"></select>
-        <span class="swatch" id="ligneSwatch"></span>
+        <div id="lineSegmentsSummary" style="max-height:420px;overflow-y:auto"></div>
       </div>
-      <div class="row">
-        <button id="lineStartBtn" disabled>Armer (START)</button>
-        <button id="lineAddBtn" class="secondary" disabled>Ajouter sur cette LED (ADD)</button>
-        <button id="lineDelBtn" class="danger" disabled>Retirer de cette LED (DEL)</button>
-      </div>
-      <div class="hint">Armer une ligne puis se déplacer (encodeur, flèches ou boutons) la tague automatiquement sur chaque LED traversée — les gares sont ignorées automatiquement, donc une ligne peut être peinte d'un seul tenant sur tout son tracé, en passant par plusieurs gares, sans redémarrer. L'amont/aval de chaque tronçon est déduit du <strong>trajet réellement parcouru</strong> (la gare croisée avant / après), pas de l'ordre des index sur le bus — le câblage physique ne suit pas forcément le tracé de la voie. Tant qu'aucune gare n'a encore été franchie d'un côté, l'amont ou l'aval reste affiché "?". Sur un <strong>embranchement</strong> (plusieurs lignes qui traversent la même LED physique puis divergent), chaque ligne garde son propre amont/aval — ce n'est pas une erreur que deux lignes affichent des gares différentes sur la même LED. Pour corriger une erreur ponctuelle (ou ce cas d'embranchement) sans repeindre tout le trajet, utilise le bouton ✎ à côté de chaque ligne dans le tableau « Tronçons tagués » (ou la commande <code>SETBORDERS &lt;ligne&gt; &lt;amont&gt; &lt;aval&gt;</code>).</div>
-      <div style="margin-top:10px;">
-        <table id="sessionsTable">
-          <thead><tr><th>Ligne armée</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- Revue / avancement par ligne -->
-    <div class="panel">
-      <h2>Revue par ligne</h2>
-      <div class="hint">Allume physiquement sur le PCB toutes les LED déjà taguées pour une ligne (dans sa vraie couleur) pour vérifier visuellement l'avancement. Le curseur courant reste visible en blanc. Peut rester actif pendant que tu peins (ligne armée) pour voir la progression en temps réel.</div>
-      <div class="tablewrap" style="margin-top:8px;">
-        <table id="overviewTable">
-          <thead><tr><th></th><th>Ligne</th><th>LED taguées</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="reviewStrip" style="margin-top:10px;"></div>
-    </div>
+      <div class="card">
+        <h2>
+          <span>Carte Physique des 4 Bus LED (Gares & Tronçons)</span>
+          <div style="display:flex;gap:6px">
+            <select id="busSelect" onchange="renderBusMatrix()">
+              <option value="0">Bus 0 (GPIO 4 — max 91 LEDs actives)</option>
+              <option value="1">Bus 1 (GPIO 5 — Nyon → St-Maurice)</option>
+              <option value="2">Bus 2 (GPIO 6 — Broye / Vevey-Puidoux)</option>
+              <option value="3">Bus 3 (GPIO 7 — Pied du Jura / Kerzers)</option>
+            </select>
+            <input type="number" id="maxBusLedsInput" value="95" min="30" max="250" style="width:75px" onchange="renderBusMatrix()" title="Nb LEDs affichées">
+          </div>
+        </h2>
+        <div id="ledMatrix" class="led-matrix"></div>
 
-    <!-- Log -->
-    <div class="panel">
-      <h2>Journal série</h2>
-      <div id="logPanel"></div>
-      <form id="manualForm" class="row" style="margin-top:8px;">
-        <input type="text" id="manualInput" class="grow" placeholder="commande manuelle, ex: HELP" disabled>
-        <button type="submit" id="manualSendBtn" disabled>Envoyer</button>
-      </form>
-    </div>
-  </div>
-
-  <div>
-    <!-- Gares taguées -->
-    <div class="panel">
-      <h2>Gares taguées</h2>
-      <div class="tablewrap">
-        <table id="garesTable">
-          <thead><tr><th>Bus</th><th>Idx</th><th>Code</th><th>Nom API</th><th>Pivot</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <!-- Éditeur de la LED sélectionnée -->
+        <div id="ledEditorBox" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <h3 id="ledEditorTitle" style="margin:0 0 10px 0;font-size:14px">Sélectionnez une LED dans la grille ci-dessus</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px">
+            <button onclick="setSelectedLedAsGare()">Définir comme Gare</button>
+            <button onclick="untagSelectedLed()" class="danger">Effacer cette LED (UNTAG)</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+            <select id="addLineCodeSelect"></select>
+            <select id="addAmontSelect"></select>
+            <span>→</span>
+            <select id="addAvalSelect"></select>
+            <button class="primary" onclick="addOrUpdateLineOnSelectedLed()">Ajouter / Mettre à jour cette ligne sur la LED</button>
+          </div>
+          <div id="selectedLedLinesList" style="margin-top:10px"></div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <!-- Tronçons tagués -->
-    <div class="panel">
-      <h2>Tronçons tagués</h2>
-      <div class="tablewrap">
-        <table id="tronconsTable">
-          <thead><tr><th>Bus</th><th>Idx</th><th>Lignes (amont &rarr; aval)</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
+  <!-- ==================== ONGLET 4 : TOUS LES SETTINGS ==================== -->
+  <section id="tab-settings" class="tab-pane">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Paramètres du Polling API & Positionnement Temps Réel</h2>
+        <div class="setting-row">
+          <div>
+            <label>Intervalle de Polling Initial (ms)</label>
+            <small>Délai entre deux gares lors du premier balayage au démarrage (`pollFastMs`)</small>
+          </div>
+          <input type="number" id="cfg_pollFastMs" value="20" min="5" max="2000" style="width:95px">
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Intervalle de Polling Régime Établi (ms)</label>
+            <small>Délai entre deux requêtes API en continu (`pollNormalMs`)</small>
+          </div>
+          <input type="number" id="cfg_pollNormalMs" value="100" min="20" max="5000" style="width:95px">
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Nombre de départs demandés par gare (`limit`)</label>
+            <small>20 recommandé pour ne rater aucun RER dans les grands nœuds (Lausanne, Renens)</small>
+          </div>
+          <input type="number" id="cfg_apiLimit" value="20" min="5" max="30" style="width:95px">
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Fenêtre « Train à quai en gare » (± secondes)</label>
+            <small>Durée pendant laquelle le train allume la LED de la gare avant d'avancer sur le rail</small>
+          </div>
+          <input type="number" id="cfg_stationWindowSec" value="35" min="10" max="180" style="width:95px">
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Échelle des temps de parcours entre gares (%)</label>
+            <small>100 % = horaires CFF réels ; réduire/augmenter pour accélérer ou ralentir l'interpolation</small>
+          </div>
+          <input type="number" id="cfg_travelScalePct" value="100" min="25" max="300" style="width:95px">
+        </div>
       </div>
-      <div class="hint" id="totalsLabel"></div>
-    </div>
 
-    <!-- Import -->
-    <div class="panel">
-      <h2>Importer des données (CSV)</h2>
-      <textarea id="importInput" style="width:100%;height:140px;font-family:Consolas,monospace;font-size:12px;" placeholder="Colle ici un export EXPORT CSV précédent (gares + tronçons)."></textarea>
-      <div class="row" style="margin-top:8px;">
-        <button id="importBtn" disabled>Importer</button>
-        <span class="hint" id="importProgress"></span>
+      <div class="card">
+        <h2>Luminosité, Clignotements de Retard & Afficheur 14 Segments</h2>
+        <div class="setting-row">
+          <div>
+            <label>Luminosité Globale des LEDs (%)</label>
+            <small>Appliquée immédiatement aux 4 bus WS2812B</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="range" id="cfg_ledBright" min="1" max="100" value="15" oninput="document.getElementById('lbl_ledBright').textContent=this.value+'%';sendCmd('SET ledBright '+this.value)">
+            <span id="lbl_ledBright" style="min-width:38px">15%</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Luminosité Afficheur 14 Segments (0..15)</label>
+            <small>Niveau matériel du contrôleur I2C HT16K33</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="range" id="cfg_dispBright" min="0" max="15" value="4" oninput="document.getElementById('lbl_dispBright').textContent=this.value;sendCmd('SET dispBright '+this.value)">
+            <span id="lbl_dispBright" style="min-width:38px">4</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Demi-période de base du clignotement retard (ms)</label>
+            <small>Plus la valeur est basse, plus le clignotement de base est rapide (`blinkBaseHalfMs`)</small>
+          </div>
+          <input type="number" id="cfg_blinkBaseHalfMs" value="660" min="150" max="1500" style="width:95px">
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Accélération du clignotement par minute de retard (ms)</label>
+            <small>Réduction de la demi-période pour chaque minute de retard (`blinkStepPerMinMs`)</small>
+          </div>
+          <input type="number" id="cfg_blinkStepPerMinMs" value="108" min="20" max="300" style="width:95px">
+        </div>
+        <div class="setting-row">
+          <div>
+            <label>Vitesse de défilement du texte 14 segments (ms / lettre)</label>
+            <small>Utilisé pour INFLUENCE, ACCESIBILITE, VUE LIVE, MODE LIGNE et le retard du train sélectionné</small>
+          </div>
+          <input type="number" id="cfg_scrollSpeedMs" value="220" min="80" max="600" style="width:95px">
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="resetAllSettings()">Valeurs par défaut</button>
+          <button class="success" onclick="applyAndSaveAllSettings()">Appliquer & Sauvegarder en NVS</button>
+        </div>
       </div>
-      <div class="hint">Rejoue le CSV collé via GOTO/STATION/LINE/SETBORDERS sur la carte connectée (amont/aval restaurés, pas seulement l'appartenance à la ligne). Écrase les positions (bus,index) présentes dans le texte collé ; le reste du tagging déjà sur la carte est conservé.</div>
     </div>
+  </section>
 
-    <!-- Export -->
-    <div class="panel">
-      <h2>Export</h2>
-      <div class="row">
-        <button id="exportCppBtn" disabled>EXPORT CPP</button>
-        <button id="exportCsvBtn" class="secondary" disabled>EXPORT CSV</button>
-        <button id="copyExportBtn" class="secondary">Copier</button>
+  <!-- ==================== ONGLET 5 : CONSOLE & EXPORT ==================== -->
+  <section id="tab-export" class="tab-pane">
+    <div class="grid-2">
+      <div class="card">
+        <h2>
+          <span>Générateur de Code C++ (<code>src/colors.cpp</code> & <code>src/stations.cpp</code>)</span>
+          <div style="display:flex;gap:6px">
+            <button class="primary" onclick="generateColorsCpp()">Générer colors.cpp</button>
+            <button class="primary" onclick="generateStationsCpp()">Générer stations.cpp</button>
+            <button onclick="copyExportBox()">Copier</button>
+          </div>
+        </h2>
+        <pre id="exportCodeBox" class="code-box">// Cliquez sur « Générer colors.cpp » ou « Générer stations.cpp »</pre>
       </div>
-      <textarea id="exportOutput" readonly placeholder="Le résultat de EXPORT CPP / EXPORT CSV s'affichera ici."></textarea>
-      <div class="hint">EXPORT CPP produit directement le contenu à coller dans src/stations.cpp (tableaux GARES[] / TRONCONS[]).</div>
-    </div>
 
-    <!-- Danger zone -->
-    <div class="panel">
-      <h2>Zone dangereuse</h2>
-      <button id="clearAllBtn" class="danger" disabled>Tout effacer (CLEAR ALL)</button>
-      <div class="hint">Efface tout le tagging en RAM de la carte. Irréversible — pense à exporter avant.</div>
+      <div class="card">
+        <h2>
+          <span>Console Directe (USB Serial / HTTP IP)</span>
+          <button onclick="document.getElementById('consoleLog').textContent=''">Effacer</button>
+        </h2>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" id="manualCmdInput" placeholder="Commande (ex: REVIEW R1, COLOR R1 255 80 0, SET apiLimit 25, HELP...)" style="flex:1" onkeydown="if(event.key==='Enter')sendManualCmd()">
+          <button class="primary" onclick="sendManualCmd()">Envoyer</button>
+        </div>
+        <pre id="consoleLog" class="code-box" style="height:360px"></pre>
+      </div>
     </div>
-
-    <!-- Aide -->
-    <div class="panel">
-      <details>
-        <summary>Comment utiliser cet outil</summary>
-        <ol style="font-size:12px; color: var(--muted); padding-left: 18px;">
-          <li>Flashe et démarre l'environnement PlatformIO <code>calib</code> sur la carte, branchée en USB.</li>
-          <li>Ouvre cette page dans <strong>Chrome ou Edge</strong> (Web Serial API, non supporté par Firefox/Safari). Ferme tout moniteur série ouvert ailleurs — un seul programme peut tenir le port USB à la fois.</li>
-          <li>Clique « Connecter (USB) » et choisis le port de la carte dans la fenêtre du navigateur.</li>
-          <li>Utilise l'encodeur physique (ou les flèches du clavier / les boutons de la page) pour te déplacer LED par LED et tagger chaque gare au fur et à mesure. Le curseur « Luminosité » du panneau « Position courante » règle le plafond de luminosité des LEDs en direct (non persisté : revient à la valeur par défaut au reboot).</li>
-          <li>Pour une ligne : clique « Armer (START) » une seule fois au début de son tracé physique, puis déplace-toi d'un bout à l'autre de la ligne (encodeur/flèches) — chaque LED traversée est taguée automatiquement, les gares sont ignorées toutes seules. L'amont/aval sont déduits du trajet parcouru (gare croisée avant/après), pas de l'ordre de câblage, donc pas besoin de les taper à la main. Clique « Stop » dans le tableau « Ligne armée » une fois le tracé terminé.</li>
-          <li>Utilise le panneau « Revue par ligne » pour allumer sur le PCB tout ce qui a déjà été tagué pour une ligne (couleur réelle) et vérifier visuellement l'avancement — le tableau donne aussi le nombre de LED taguées par ligne.</li>
-          <li>Pour corriger : dans les tableaux « Gares taguées » / « Tronçons tagués », clique « Suppr. » pour effacer une gare, le « × » sur une ligne pour la retirer d'une LED précise, ou « Suppr. tout » pour vider complètement une LED de tronçon — pas besoin de naviguer physiquement jusqu'à la LED au préalable, le bouton fait le GOTO pour toi. Pour ajouter une LED précise, va dessus via le panneau « Position courante » (bus + index + « Aller ») puis utilise « Taguer comme gare » ou « Ajouter sur cette LED (ADD) ».</li>
-          <li>Vérifie dans les tableaux de droite que tout est cohérent, puis clique « EXPORT CPP » et colle le résultat dans <code>src/stations.cpp</code>. Un amont/aval encore à "?" est signalé en commentaire dans l'export — complète-le avec un passage « Armer » supplémentaire ou le bouton ✎ sur la ligne concernée (commande manuelle équivalente : <code>SETBORDERS &lt;ligne&gt; &lt;amont&gt; &lt;aval&gt;</code>, la ligne doit déjà être présente sur la LED).</li>
-          <li>Pour récupérer un tagging déjà fait (ex. après un reset de la carte), colle un export <code>EXPORT CSV</code> précédent dans le panneau « Importer des données » puis clique « Importer » : la page rejoue les commandes nécessaires sur la carte connectée.</li>
-        </ol>
-      </details>
-    </div>
-  </div>
+  </section>
 </main>
 
 <script>
-const LIGNES = [
-  {code:"R1",   color:"#FF6600"},
-  {code:"R2",   color:"#E60000"},
-  {code:"R3",   color:"#003399"},
-  {code:"R4",   color:"#0099FF"},
-  {code:"R7",   color:"#FFCC00"},
-  {code:"R8",   color:"#66CC33"},
-  {code:"R9",   color:"#006633"},
-  {code:"R13",  color:"#9933CC"},
-  {code:"RE33", color:"#8B4513"},
-  {code:"S5",   color:"#800020"},
-  {code:"S30",  color:"linear-gradient(90deg, #FF3399 50%, #00CCCC 50%)", alt:true},
-  {code:"S40",  color:"linear-gradient(90deg, #FF3399 50%, #00CCCC 50%)", alt:true},
-  {code:"S41",  color:"linear-gradient(90deg, #FF3399 50%, #00CCCC 50%)", alt:true},
-  {code:"S52",  color:"#FFFFFF"},
+// =============================================================================
+// 1. DONNÉES PRÉ-CHARGÉES DU RÉSEAU RER VAUD (miroir exact de stations.cpp & colors.cpp)
+// =============================================================================
+const LINE_CODES = ["R1","R2","R3","R4","R7","R8","R9","R13","RE33","S5","S30","S40","S41","S52"];
+
+const DEFAULT_COLORS = [
+  { code:"R1",   r1:255, g1:102, b1:0,   r2:255, g2:102, b2:0,   alt:false },
+  { code:"R2",   r1:255, g1:0,   b1:0,   r2:255, g2:0,   b2:0,   alt:false },
+  { code:"R3",   r1:0,   g1:51,  b1:153, r2:0,   g2:51,  b2:153, alt:false },
+  { code:"R4",   r1:0,   g1:153, b1:255, r2:0,   g2:153, b2:255, alt:false },
+  { code:"R7",   r1:255, g1:204, b1:0,   r2:255, g2:204, b2:0,   alt:false },
+  { code:"R8",   r1:102, g1:204, b1:51,  r2:102, g2:204, b2:51,  alt:false },
+  { code:"R9",   r1:0,   g1:102, b1:34,  r2:0,   g2:102, b2:34,  alt:false },
+  { code:"R13",  r1:153, g1:51,  b1:204, r2:153, g2:51,  b2:204, alt:false },
+  { code:"RE33", r1:139, g1:69,  b1:19,  r2:139, g2:69,  b2:19,  alt:false },
+  { code:"S5",   r1:128, g1:0,   b1:32,  r2:128, g2:0,   b2:32,  alt:false },
+  { code:"S30",  r1:255, g1:51,  b1:153, r2:0,   g2:204, b2:204, alt:true  },
+  { code:"S40",  r1:255, g1:51,  b1:153, r2:0,   g2:204, b2:204, alt:true  },
+  { code:"S41",  r1:255, g1:51,  b1:153, r2:0,   g2:204, b2:204, alt:true  },
+  { code:"S52",  r1:255, g1:255, b1:255, r2:255, g2:255, b2:255, alt:false }
 ];
 
-let port = null, reader = null, writer = null, keepReading = false;
-let readableStreamClosed = null, writableStreamClosed = null;
-let capturingExport = false, exportLines = [];
+let lineColors = JSON.parse(JSON.stringify(DEFAULT_COLORS));
 
-let uiState = { bus: 0, index: 0, numBuses: 4, ledsPerBus: 250, review: "", brightness: 30, tag: { type: "NONE" }, totals: { gares: 0, troncons: 0 } };
-let listData = { gares: [], troncons: [] };
-let sessionsData = { active: [] };
+const INITIAL_GARES = [
+  { idx:0,  code:"BRAS", api:"Le Brassus",        bus:0, index:0,  pivot:true },
+  { idx:1,  code:"VALL", api:"Vallorbe",          bus:0, index:11, pivot:true },
+  { idx:2,  code:"PUID", api:"Puidoux",           bus:0, index:42, pivot:true },
+  { idx:3,  code:"PALE", api:"Palezieux",         bus:0, index:45, pivot:true },
+  { idx:4,  code:"ROMO", api:"Romont",            bus:0, index:56, pivot:true },
+  { idx:5,  code:"FRIB", api:"Fribourg",          bus:0, index:64, pivot:true },
+  { idx:6,  code:"NYON", api:"Nyon",              bus:1, index:0,  pivot:true },
+  { idx:7,  code:"GLAN", api:"Gland",             bus:1, index:3,  pivot:true },
+  { idx:8,  code:"ROLL", api:"Rolle",             bus:1, index:6,  pivot:true },
+  { idx:9,  code:"ALLA", api:"Allaman",           bus:1, index:8,  pivot:true },
+  { idx:10, code:"MORG", api:"Morges",            bus:1, index:13, pivot:true },
+  { idx:11, code:"RENE", api:"Renens",            bus:1, index:19, pivot:true },
+  { idx:12, code:"LAUS", api:"Lausanne",          bus:1, index:23, pivot:true },
+  { idx:13, code:"VEVE", api:"Vevey",             bus:1, index:38, pivot:true },
+  { idx:14, code:"MONT", api:"Montreux",          bus:1, index:44, pivot:true },
+  { idx:15, code:"VILL", api:"Villeneuve",        bus:1, index:47, pivot:true },
+  { idx:16, code:"AIGL", api:"Aigle",             bus:1, index:51, pivot:true },
+  { idx:17, code:"BEX",  api:"Bex",               bus:1, index:53, pivot:true },
+  { idx:18, code:"STMA", api:"St-Maurice",        bus:1, index:55, pivot:true },
+  { idx:19, code:"MORA", api:"Morat",             bus:2, index:3,  pivot:true },
+  { idx:20, code:"AVEN", api:"Avenches",          bus:2, index:7,  pivot:true },
+  { idx:21, code:"PAYE", api:"Payerne",           bus:2, index:9,  pivot:true },
+  { idx:22, code:"ESTA", api:"Estavayer-Le-Lac",  bus:2, index:18, pivot:true },
+  { idx:23, code:"KERZ", api:"Kerzers",           bus:3, index:10, pivot:true },
+  { idx:24, code:"INS",  api:"INS",               bus:3, index:17, pivot:true },
+  { idx:25, code:"NEUC", api:"Neuchatel",         bus:3, index:26, pivot:true },
+  { idx:26, code:"GRAN", api:"Grandson",          bus:3, index:37, pivot:true },
+  { idx:27, code:"YVER", api:"Yverdon-les-Bains", bus:3, index:39, pivot:true },
+  { idx:28, code:"HORS", api:"",                  bus:3, index:9,  pivot:false }
+];
 
-const el = (id) => document.getElementById(id);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-function log(msg) {
-  const panel = el('logPanel');
-  const atBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 10;
-  panel.textContent += msg + "\n";
-  if (panel.textContent.length > 200000) panel.textContent = panel.textContent.slice(-150000);
-  if (atBottom) panel.scrollTop = panel.scrollHeight;
+// Génération de la table des tronçons initiale identique à stations.cpp
+function buildInitialTroncons() {
+  const list = [];
+  const addRange = (bus, fromIdx, toIdx, lignes) => {
+    for (let i = fromIdx; i <= toIdx; i++) {
+      list.push({ bus, index: i, lignes: lignes.map(l => ({...l})) });
+    }
+  };
+  // Bus 0
+  addRange(0, 1, 10,  [{code:"R4", amont:"BRAS", aval:"VALL"}]);
+  addRange(0, 12, 21, [{code:"R3", amont:"VALL", aval:"RENE"}, {code:"R4", amont:"VALL", aval:"RENE"}]);
+  addRange(0, 22, 30, [{code:"R1", amont:"YVER", aval:"RENE"}, {code:"R2", amont:"YVER", aval:"RENE"}, {code:"R3", amont:"VALL", aval:"RENE"}, {code:"R4", amont:"VALL", aval:"RENE"}]);
+  addRange(0, 31, 41, [{code:"R8", amont:"LAUS", aval:"PUID"}, {code:"R9", amont:"LAUS", aval:"PUID"}]);
+  addRange(0, 43, 44, [{code:"R8", amont:"PUID", aval:"PALE"}, {code:"R9", amont:"PUID", aval:"PALE"}, {code:"S40", amont:"PUID", aval:"PALE"}]);
+  addRange(0, 46, 46, [{code:"R8", amont:"PALE", aval:"PAYE"}, {code:"R9", amont:"PALE", aval:"PAYE"}]);
+  addRange(0, 47, 55, [{code:"S40", amont:"ROMO", aval:"PALE"}]);
+  addRange(0, 57, 63, [{code:"S40", amont:"FRIB", aval:"ROMO"}]);
+  addRange(0, 65, 77, [{code:"S30", amont:"YVER", aval:"FRIB"}]);
+  addRange(0, 78, 90, [{code:"R8", amont:"PALE", aval:"PAYE"}, {code:"R9", amont:"PALE", aval:"PAYE"}]);
+  // Bus 1
+  addRange(1, 1, 2,   [{code:"RE33", amont:"NYON", aval:"GLAN"}]);
+  addRange(1, 4, 5,   [{code:"RE33", amont:"GLAN", aval:"ROLL"}]);
+  addRange(1, 7, 7,   [{code:"RE33", amont:"ROLL", aval:"ALLA"}]);
+  addRange(1, 9, 12,  [{code:"R8", amont:"ALLA", aval:"MORG"}, {code:"R9", amont:"ALLA", aval:"MORG"}, {code:"RE33", amont:"ALLA", aval:"MORG"}]);
+  addRange(1, 14, 17, [{code:"R8", amont:"MORG", aval:"RENE"}, {code:"R9", amont:"MORG", aval:"RENE"}, {code:"RE33", amont:"MORG", aval:"RENE"}]);
+  addRange(1, 18, 18, [{code:"R1", amont:"YVER", aval:"RENE"}, {code:"R2", amont:"YVER", aval:"RENE"}, {code:"R3", amont:"VALL", aval:"RENE"}, {code:"R4", amont:"VALL", aval:"RENE"}]);
+  addRange(1, 20, 22, [{code:"R1", amont:"RENE", aval:"LAUS"}, {code:"R2", amont:"RENE", aval:"LAUS"}, {code:"RE33", amont:"RENE", aval:"LAUS"}]);
+  addRange(1, 24, 37, [{code:"R1", amont:"LAUS", aval:"VEVE"}, {code:"R2", amont:"LAUS", aval:"VEVE"}, {code:"R3", amont:"LAUS", aval:"VEVE"}, {code:"RE33", amont:"LAUS", aval:"VEVE"}]);
+  addRange(1, 39, 43, [{code:"R1", amont:"VEVE", aval:"MONT"}, {code:"R2", amont:"VEVE", aval:"MONT"}, {code:"RE33", amont:"VEVE", aval:"MONT"}]);
+  addRange(1, 45, 46, [{code:"R1", amont:"MONT", aval:"VILL"}, {code:"R2", amont:"MONT", aval:"VILL"}, {code:"RE33", amont:"MONT", aval:"VILL"}]);
+  addRange(1, 48, 50, [{code:"R1", amont:"VILL", aval:"AIGL"}, {code:"R2", amont:"VILL", aval:"AIGL"}, {code:"RE33", amont:"VILL", aval:"AIGL"}]);
+  addRange(1, 52, 52, [{code:"R1", amont:"AIGL", aval:"BEX"},  {code:"R2", amont:"AIGL", aval:"BEX"},  {code:"RE33", amont:"AIGL", aval:"BEX"}]);
+  addRange(1, 54, 54, [{code:"R1", amont:"BEX",  aval:"STMA"}, {code:"RE33", amont:"BEX", aval:"STMA"}]);
+  // Bus 2
+  addRange(2, 0, 2,   [{code:"S5", amont:"MORA", aval:"KERZ"}, {code:"S52", amont:"MORA", aval:"KERZ"}]);
+  addRange(2, 4, 6,   [{code:"R9", amont:"AVEN", aval:"MORA"}, {code:"S5", amont:"AVEN", aval:"MORA"}, {code:"S52", amont:"AVEN", aval:"MORA"}]);
+  addRange(2, 8, 8,   [{code:"R8", amont:"PAYE", aval:"AVEN"}, {code:"R9", amont:"PAYE", aval:"AVEN"}, {code:"S52", amont:"PAYE", aval:"AVEN"}]);
+  addRange(2, 10, 10, [{code:"R8", amont:"PALE", aval:"PAYE"}, {code:"S30", amont:"ESTA", aval:"PAYE"}]);
+  addRange(2, 11, 17, [{code:"S30", amont:"ESTA", aval:"PAYE"}]);
+  addRange(2, 19, 24, [{code:"S30", amont:"YVER", aval:"ESTA"}]);
+  addRange(2, 25, 28, [{code:"R7", amont:"PUID", aval:"VEVE"}]);
+  // Bus 3
+  addRange(3, 0, 8,   [{code:"S5", amont:"KERZ", aval:"HORS"}, {code:"S52", amont:"KERZ", aval:"HORS"}]);
+  addRange(3, 11, 16, [{code:"S5", amont:"KERZ", aval:"INS"}]);
+  addRange(3, 18, 25, [{code:"S5", amont:"INS",  aval:"NEUC"}]);
+  addRange(3, 27, 36, [{code:"R13", amont:"GRAN", aval:"NEUC"}]);
+  addRange(3, 38, 38, [{code:"R1", amont:"GRAN", aval:"YVER"}, {code:"R13", amont:"YVER", aval:"GRAN"}]);
+  addRange(3, 40, 52, [{code:"R1", amont:"YVER", aval:"RENE"}, {code:"R2", amont:"YVER", aval:"RENE"}]);
+  return list;
 }
 
-function setConnected(on) {
-  el('connDot').className = on ? 'on' : '';
-  el('connectBtn').disabled = on;
-  el('disconnectBtn').disabled = !on;
-  ['refreshBtn','busSelect','indexInput','gotoBtn','prevBtn','nextBtn','prevBusBtn','nextBusBtn',
-   'stationSubmitBtn','untagBtn','lineStartBtn','lineAddBtn','lineDelBtn','manualInput','manualSendBtn',
-   'exportCppBtn','exportCsvBtn','clearAllBtn','importBtn','brightRange'].forEach(id => el(id).disabled = !on);
-  renderOverview();
+let gares = JSON.parse(JSON.stringify(INITIAL_GARES));
+let troncons = buildInitialTroncons();
+
+// =============================================================================
+// 2. CONNEXION HYBRIDE : HTTP (IP Wi-Fi) + USB (Web Serial)
+// =============================================================================
+let connMode = "none"; // "http" | "usb" | "none"
+let espIp = "";
+let serialPort = null;
+let serialWriter = null;
+
+function logConsole(msg) {
+  const box = document.getElementById("consoleLog");
+  const ts = new Date().toLocaleTimeString();
+  box.textContent += `[${ts}] ${msg}\n`;
+  box.scrollTop = box.scrollHeight;
 }
 
-async function connect() {
-  if (!('serial' in navigator)) {
-    el('banner').style.display = 'block';
-    el('banner').textContent = "Web Serial non disponible dans ce navigateur. Utilise Chrome ou Edge.";
+function setConnBadge(text, ok) {
+  const el = document.getElementById("connStatus");
+  el.textContent = text;
+  el.className = "badge " + (ok ? "ok" : "warn");
+}
+
+async function connectHttp() {
+  const ip = document.getElementById("ipInput").value.trim();
+  if (!ip) { alert("Entrez l'adresse IP de l'ESP32 (ex: 192.168.1.45 ou 192.168.4.1)"); return; }
+  espIp = ip.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  try {
+    const res = await fetch(`http://${espIp}/api/all`);
+    const data = await res.json();
+    connMode = "http";
+    setConnBadge(`Connecté via IP (${espIp})`, true);
+    logConsole(`Connecté en HTTP à ${espIp}`);
+    if (data.colors && data.colors.lines) {
+      lineColors = data.colors.lines;
+      document.getElementById("altPeriodInput").value = data.colors.altMs || 1500;
+      renderColorsTable();
+    }
+    if (data.settings) populateSettingsForm(data.settings);
+    const mapRes = await fetch(`http://${espIp}/api/map`);
+    const mapData = await mapRes.json();
+    if (mapData.gares && mapData.gares.length > 0) {
+      gares = mapData.gares;
+      troncons = mapData.troncons || [];
+      renderBusMatrix();
+      renderRemapView();
+    }
+  } catch (e) {
+    logConsole(`Erreur connexion HTTP (${espIp}): ${e.message}`);
+    alert(`Impossible de joindre http://${espIp}/api/all. Vérifiez que la carte est en mode Calibration et sur le même réseau Wi-Fi.`);
+  }
+}
+
+async function connectUsb() {
+  if (!("serial" in navigator)) {
+    alert("Web Serial API non supportée par ce navigateur. Ouvrez ce fichier dans Google Chrome ou Microsoft Edge.");
     return;
   }
   try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
-
-    const textDecoder = new TextDecoderStream();
-    readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-    reader = textDecoder.readable.getReader();
-
-    const textEncoder = new TextEncoderStream();
-    writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
-    writer = textEncoder.writable.getWriter();
-
-    keepReading = true;
-    readLoop();
-    setConnected(true);
-    log("--- connecté ---");
-    await sleep(300);
-    await refreshAll();
+    if (serialPort) {
+      try {
+        if (serialWriter) { serialWriter.releaseLock(); serialWriter = null; }
+        await serialPort.close();
+      } catch (_) {}
+      serialPort = null;
+    }
+    serialPort = await navigator.serial.requestPort();
+    await serialPort.open({ baudRate: 115200 });
+    // Indispensable sur ESP32-S3 USB CDC natif (IO19/IO20) : active DTR sans déclencher de reset RTS
+    try {
+      await serialPort.setSignals({ dataTerminalReady: true, requestToSend: false });
+    } catch (_) {}
+    serialWriter = serialPort.writable.getWriter();
+    connMode = "usb";
+    setConnBadge("Connecté en USB (WebSerial)", true);
+    logConsole("Port série USB ouvert à 115200 bauds (DTR=1, RTS=0).");
+    readUsbLoop();
+    await new Promise(r => setTimeout(r, 150));
+    await sendCmd("COLORSJSON");
+    await sendCmd("SETTINGSJSON");
+    await sendCmd("LIST JSON");
   } catch (e) {
-    log("Erreur connexion: " + e.message);
+    logConsole("Erreur ouverture USB: " + e.message);
+    alert("Impossible d'ouvrir le port USB (" + e.message + ").\n\n" +
+          "1. Fermez le Moniteur Série (Serial Monitor) dans VS Code / PlatformIO s'il est ouvert.\n" +
+          "2. Utilisez Chrome ou Edge et sélectionnez le port COM de l'ESP32-S3.");
   }
 }
 
-async function disconnect() {
-  keepReading = false;
-  try { if (reader) await reader.cancel(); } catch (e) {}
-  try { if (readableStreamClosed) await readableStreamClosed.catch(() => {}); } catch (e) {}
-  try { if (writer) { await writer.close(); } } catch (e) {}
-  try { if (writableStreamClosed) await writableStreamClosed.catch(() => {}); } catch (e) {}
-  try { if (port) await port.close(); } catch (e) {}
-  port = null; reader = null; writer = null;
-  setConnected(false);
-  log("--- déconnecté ---");
-}
-
-async function readLoop() {
-  let buf = "";
+async function readUsbLoop() {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const reader = serialPort.readable.getReader();
   try {
-    while (keepReading) {
+    while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      buf += value;
-      let idx;
-      while ((idx = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, idx).replace(/\r$/, "");
-        buf = buf.slice(idx + 1);
-        handleLine(line);
+      buffer += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (line) handleSerialLine(line);
       }
     }
   } catch (e) {
-    log("Erreur lecture: " + e.message);
+    logConsole("Déconnexion USB: " + e.message);
   }
 }
 
-function handleLine(line) {
-  if (line.startsWith("@STATE@")) {
-    try { uiState = JSON.parse(line.slice(7)); renderState(); } catch (e) { log("JSON STATE invalide: " + line); }
+function handleSerialLine(line) {
+  if (line.startsWith("@COLORS@")) {
+    try {
+      const obj = JSON.parse(line.slice(8));
+      if (obj.lines) { lineColors = obj.lines; renderColorsTable(); }
+      if (obj.altMs) document.getElementById("altPeriodInput").value = obj.altMs;
+    } catch (e) {}
+    return;
+  }
+  if (line.startsWith("@SETTINGS@")) {
+    try {
+      const obj = JSON.parse(line.slice(10));
+      populateSettingsForm(obj);
+    } catch (e) {}
     return;
   }
   if (line.startsWith("@LISTJSON@")) {
-    try { listData = JSON.parse(line.slice(10)); renderLists(); } catch (e) { log("JSON LIST invalide: " + line); }
-    return;
-  }
-  if (line.startsWith("@SESSIONS@")) {
-    try { sessionsData = JSON.parse(line.slice(10)); renderSessions(); } catch (e) { log("JSON SESSIONS invalide: " + line); }
-    return;
-  }
-  if (line === "@EXPORTSTART@") { capturingExport = true; exportLines = []; return; }
-  if (line === "@EXPORTEND@") {
-    capturingExport = false;
-    el('exportOutput').value = exportLines.join("\n");
-    log("--- export reçu (" + exportLines.length + " lignes) ---");
-    return;
-  }
-  if (capturingExport) { exportLines.push(line); return; }
-  log(line);
-}
-
-async function sendRaw(text) {
-  if (!writer) { log("Non connecté."); return; }
-  log(">> " + text);
-  await writer.write(text + "\n");
-}
-
-async function refreshAll() {
-  await sendRaw("STATE");
-  await sendRaw("LIST JSON");
-  await sendRaw("SESSIONS");
-}
-
-function gotoPos(bus, index) {
-  if (uiState.numBuses <= 0 || uiState.ledsPerBus <= 0) return;
-  bus = ((bus % uiState.numBuses) + uiState.numBuses) % uiState.numBuses;
-  index = ((index % uiState.ledsPerBus) + uiState.ledsPerBus) % uiState.ledsPerBus;
-  sendRaw(`GOTO ${bus} ${index}`).then(refreshAll);
-}
-
-function ensureBusOptions() {
-  const sel = el('busSelect');
-  if (sel.options.length !== uiState.numBuses) {
-    sel.innerHTML = '';
-    for (let b = 0; b < uiState.numBuses; b++) {
-      const opt = document.createElement('option');
-      opt.value = b; opt.textContent = 'Bus ' + b;
-      sel.appendChild(opt);
-    }
-  }
-}
-
-function renderState() {
-  ensureBusOptions();
-  el('busLabel').textContent = uiState.bus;
-  el('indexLabel').textContent = uiState.index;
-  el('busSelect').value = uiState.bus;
-  el('indexInput').max = uiState.ledsPerBus - 1;
-  el('indexInput').value = uiState.index;
-
-  const box = el('tagBox');
-  if (uiState.tag.type === 'GARE') {
-    box.innerHTML = `<strong>GARE</strong> ${uiState.tag.code} — ${uiState.tag.api}${uiState.tag.pivot ? ' [PIVOT]' : ''}`;
-    box.className = 'tagbox tag-gare';
-  } else if (uiState.tag.type === 'TRONCON') {
-    const detail = uiState.tag.lignes.map(l => `${l.code} (${l.amont} &rarr; ${l.aval})`).join(', ');
-    box.innerHTML = `<strong>TRONÇON</strong> ${detail}`;
-    box.className = 'tagbox tag-troncon';
-  } else {
-    box.innerHTML = '(non tagué)';
-    box.className = 'tagbox tag-none';
-  }
-  el('totalsSmall').textContent = `${uiState.totals.gares} gares / ${uiState.totals.troncons} tronçons tagués (total carte)`;
-  if (document.activeElement !== el('brightRange')) {
-    el('brightRange').value = uiState.brightness;
-    el('brightVal').textContent = uiState.brightness;
-  }
-  renderOverview();
-  renderReviewStrip();
-}
-
-async function removeGare(g) {
-  await sendRaw(`GOTO ${g.bus} ${g.index}`);
-  await sendRaw('UNTAG');
-  await refreshAll();
-}
-
-async function removeTronconLigne(t, code) {
-  await sendRaw(`GOTO ${t.bus} ${t.index}`);
-  await sendRaw(`LINE ${code} DEL`);
-  await refreshAll();
-}
-
-async function removeTronconAll(t) {
-  await sendRaw(`GOTO ${t.bus} ${t.index}`);
-  await sendRaw('UNTAG');
-  await refreshAll();
-}
-
-async function editTronconBorders(t, l) {
-  const amont = prompt(`Gare amont pour ${l.code} sur bus ${t.bus} idx ${t.index} (? pour effacer) :`, l.amont === '?' ? '' : l.amont);
-  if (amont === null) return;
-  const aval = prompt(`Gare aval pour ${l.code} sur bus ${t.bus} idx ${t.index} (? pour effacer) :`, l.aval === '?' ? '' : l.aval);
-  if (aval === null) return;
-  await sendRaw(`GOTO ${t.bus} ${t.index}`);
-  await sendRaw(`SETBORDERS ${l.code} ${amont.trim() || '?'} ${aval.trim() || '?'}`);
-  await refreshAll();
-}
-
-function renderLists() {
-  const gBody = document.querySelector('#garesTable tbody');
-  gBody.innerHTML = '';
-  [...listData.gares].sort((a, b) => a.bus - b.bus || a.index - b.index).forEach(g => {
-    const tr = document.createElement('tr');
-    tr.className = 'clickable';
-    tr.innerHTML = `<td>${g.bus}</td><td>${g.index}</td><td>${g.code}</td><td>${g.api}</td><td>${g.pivot ? 'oui' : ''}</td><td></td>`;
-    tr.addEventListener('click', (ev) => { if (!ev.target.closest('button')) gotoPos(g.bus, g.index); });
-    const delBtn = document.createElement('button');
-    delBtn.className = 'rowbtn-del'; delBtn.textContent = 'Suppr.';
-    delBtn.disabled = !port;
-    delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); removeGare(g); });
-    tr.lastElementChild.appendChild(delBtn);
-    gBody.appendChild(tr);
-  });
-
-  const tBody = document.querySelector('#tronconsTable tbody');
-  tBody.innerHTML = '';
-  [...listData.troncons].sort((a, b) => a.bus - b.bus || a.index - b.index).forEach(t => {
-    const tr = document.createElement('tr');
-    tr.className = 'clickable';
-    tr.addEventListener('click', (ev) => { if (!ev.target.closest('button')) gotoPos(t.bus, t.index); });
-
-    const tdBus = document.createElement('td'); tdBus.textContent = t.bus;
-    const tdIdx = document.createElement('td'); tdIdx.textContent = t.index;
-    const tdLignes = document.createElement('td');
-    t.lignes.forEach(l => {
-      const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.appendChild(document.createTextNode(`${l.code} (${l.amont} → ${l.aval})`));
-      const editBtn = document.createElement('button');
-      editBtn.textContent = '✎'; editBtn.title = `Corriger amont/aval de ${l.code} sur cette LED`;
-      editBtn.disabled = !port;
-      editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); editTronconBorders(t, l); });
-      chip.appendChild(editBtn);
-      const xbtn = document.createElement('button');
-      xbtn.textContent = '×'; xbtn.title = `Retirer ${l.code} de cette LED`;
-      xbtn.disabled = !port;
-      xbtn.addEventListener('click', (ev) => { ev.stopPropagation(); removeTronconLigne(t, l.code); });
-      chip.appendChild(xbtn);
-      tdLignes.appendChild(chip);
-    });
-    const tdDel = document.createElement('td');
-    const delBtn = document.createElement('button');
-    delBtn.className = 'rowbtn-del'; delBtn.textContent = 'Suppr. tout';
-    delBtn.disabled = !port;
-    delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); removeTronconAll(t); });
-    tdDel.appendChild(delBtn);
-
-    tr.append(tdBus, tdIdx, tdLignes, tdDel);
-    tBody.appendChild(tr);
-  });
-
-  el('totalsLabel').textContent = `${listData.gares.length} gares, ${listData.troncons.length} tronçons tagués`;
-  renderOverview();
-  renderReviewStrip();
-}
-
-function renderSessions() {
-  const tbody = document.querySelector('#sessionsTable tbody');
-  tbody.innerHTML = '';
-  sessionsData.active.forEach(code => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${code}</td><td></td>`;
-    const td = tr.lastElementChild;
-    const btn = document.createElement('button');
-    btn.className = 'secondary'; btn.textContent = 'Stop';
-    btn.addEventListener('click', async () => { await sendRaw(`LINE ${code} STOP`); await refreshAll(); });
-    td.appendChild(btn);
-    tbody.appendChild(tr);
-  });
-}
-
-function countsByLigne() {
-  const counts = {};
-  LIGNES.forEach(l => counts[l.code] = 0);
-  listData.troncons.forEach(t => t.lignes.forEach(l => { counts[l.code] = (counts[l.code] || 0) + 1; }));
-  return counts;
-}
-
-function renderOverview() {
-  const counts = countsByLigne();
-  const tbody = document.querySelector('#overviewTable tbody');
-  tbody.innerHTML = '';
-  LIGNES.forEach(l => {
-    const tr = document.createElement('tr');
-    const isReviewing = uiState.review === l.code;
-    if (isReviewing) tr.className = 'reviewing';
-    tr.innerHTML = `<td><span class="swatch" style="background:${l.color}"></span></td><td>${l.code}</td><td>${counts[l.code] || 0}</td><td></td>`;
-    const td = tr.lastElementChild;
-    const btn = document.createElement('button');
-    btn.className = isReviewing ? 'danger' : 'secondary';
-    btn.textContent = isReviewing ? 'Masquer' : 'Afficher sur PCB';
-    btn.disabled = !port;
-    btn.addEventListener('click', async () => {
-      await sendRaw(isReviewing ? 'REVIEW OFF' : `REVIEW ${l.code}`);
-      await refreshAll();
-    });
-    td.appendChild(btn);
-    tbody.appendChild(tr);
-  });
-}
-
-function renderReviewStrip() {
-  const container = el('reviewStrip');
-  if (!uiState.review) { container.innerHTML = '<div class="hint">(aucune ligne en revue actuellement)</div>'; return; }
-  const code = uiState.review;
-  const gareSet = new Set(listData.gares.map(g => g.bus + ':' + g.index));
-  const taggedSet = new Set(listData.troncons.filter(t => t.lignes.some(l => l.code === code)).map(t => t.bus + ':' + t.index));
-  const ligne = LIGNES.find(l => l.code === code);
-  let html = `<div class="hint">Revue en cours : <strong>${code}</strong> (curseur = contour blanc épais)</div>`;
-  for (let bus = 0; bus < uiState.numBuses; bus++) {
-    html += `<div class="ledstrip-bus"><span class="buslabel">Bus ${bus}</span><div class="ledstrip">`;
-    for (let i = 0; i < uiState.ledsPerBus; i++) {
-      const key = bus + ':' + i;
-      const classes = ['ledcell'];
-      let style = '';
-      if (gareSet.has(key)) classes.push('gare');
-      if (taggedSet.has(key)) { classes.push('tagged'); style = `style="background:${ligne ? ligne.color : '#fff'}"`; }
-      if (bus === uiState.bus && i === uiState.index) classes.push('cursor');
-      html += `<div class="${classes.join(' ')}" ${style} title="bus ${bus} idx ${i}"></div>`;
-    }
-    html += `</div></div>`;
-  }
-  container.innerHTML = html;
-}
-
-function updateSwatch() {
-  const l = LIGNES.find(x => x.code === el('ligneSelect').value);
-  el('ligneSwatch').style.background = l ? l.color : '#000';
-}
-
-function parseImportCsv(text) {
-  const gares = [], troncons = [];
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line) continue;
-    const parts = line.split(',');
-    if (parts.length < 6) continue;
-    if (parts[0].trim().toLowerCase() === 'bus') continue; // ligne d'en-tête
-    const bus = parseInt(parts[0], 10);
-    const index = parseInt(parts[1], 10);
-    if (Number.isNaN(bus) || Number.isNaN(index)) continue;
-    const type = parts[2].trim().toUpperCase();
-    if (type === 'GARE') {
-      gares.push({ bus, index, code: parts[3].trim(), api: parts[4].trim(), pivot: parts[5].trim() === '1' });
-    } else if (type === 'TRONCON') {
-      // Une ligne par (bus,index,ligne) : plusieurs lignes sur la meme LED
-      // (ex. embranchement) apparaissent donc sur plusieurs lignes CSV distinctes.
-      troncons.push({ bus, index, ligne: parts[3].trim(), amont: parts[4].trim(), aval: parts[5].trim() });
-    }
-  }
-  return { gares, troncons };
-}
-
-async function runImport(text) {
-  const { gares, troncons } = parseImportCsv(text);
-  const total = gares.length + troncons.length;
-  if (total === 0) { alert("Aucune ligne GARE/TRONCON reconnue dans le texte collé (format attendu : celui de EXPORT CSV)."); return; }
-  if (!confirm(`Importer ${gares.length} gare(s) et ${troncons.length} tag(s) de ligne sur tronçon ?\nLes positions (bus,index) déjà taguées parmi celles-ci seront écrasées.`)) return;
-
-  el('importBtn').disabled = true;
-  let done = 0;
-  const bump = () => { done++; el('importProgress').textContent = `Import: ${done}/${total}`; };
-  try {
-    for (const g of gares) {
-      await sendRaw(`GOTO ${g.bus} ${g.index}`);
-      await sendRaw(`STATION ${g.code} ${g.api.replace(/\s+/g, '_')}${g.pivot ? ' PIVOT' : ''}`);
-      bump();
-    }
-    for (const t of troncons) {
-      await sendRaw(`GOTO ${t.bus} ${t.index}`);
-      await sendRaw(`LINE ${t.ligne} ADD`);
-      const amont = t.amont || '?';
-      const aval = t.aval || '?';
-      if (amont !== '?' || aval !== '?') {
-        await sendRaw(`SETBORDERS ${t.ligne} ${amont} ${aval}`);
+    try {
+      const obj = JSON.parse(line.slice(10));
+      if (obj.gares && obj.gares.length > 0) {
+        gares = obj.gares;
+        troncons = obj.troncons || [];
+        renderBusMatrix();
+        renderRemapView();
       }
-      bump();
+    } catch (e) {}
+    return;
+  }
+  logConsole(line);
+}
+
+async function sendCmd(cmd) {
+  logConsole("> " + cmd);
+  if (connMode === "http" && espIp) {
+    try {
+      await fetch(`http://${espIp}/api/cmd?c=` + encodeURIComponent(cmd));
+    } catch (e) {
+      logConsole("Erreur HTTP: " + e.message);
     }
-    log(`--- import terminé: ${gares.length} gare(s), ${troncons.length} tronçon(s) ---`);
-  } finally {
-    el('importBtn').disabled = !port;
-    await refreshAll();
+  } else if (connMode === "usb" && serialWriter) {
+    const data = new TextEncoder().encode(cmd + "\n");
+    await serialWriter.write(data);
   }
 }
 
-// --- wiring ---
-el('connectBtn').addEventListener('click', connect);
-el('disconnectBtn').addEventListener('click', disconnect);
-el('refreshBtn').addEventListener('click', refreshAll);
-
-el('busSelect').addEventListener('change', () => gotoPos(parseInt(el('busSelect').value, 10), uiState.index));
-el('gotoBtn').addEventListener('click', () => gotoPos(uiState.bus, parseInt(el('indexInput').value || '0', 10)));
-el('prevBtn').addEventListener('click', () => gotoPos(uiState.bus, uiState.index - 1));
-el('nextBtn').addEventListener('click', () => gotoPos(uiState.bus, uiState.index + 1));
-el('prevBusBtn').addEventListener('click', () => gotoPos(uiState.bus - 1, uiState.index));
-el('nextBusBtn').addEventListener('click', () => gotoPos(uiState.bus + 1, uiState.index));
-
-el('stationForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const code = el('stCode').value.trim();
-  const api = el('stApi').value.trim().replace(/\s+/g, '_');
-  const pivot = el('stPivot').checked;
-  if (!code || !api) { alert('Code et nom API requis.'); return; }
-  await sendRaw(`STATION ${code} ${api}${pivot ? ' PIVOT' : ''}`);
-  await refreshAll();
-});
-el('untagBtn').addEventListener('click', async () => { await sendRaw('UNTAG'); await refreshAll(); });
-
-el('brightRange').addEventListener('input', () => { el('brightVal').textContent = el('brightRange').value; });
-el('brightRange').addEventListener('change', async () => { await sendRaw(`BRIGHTNESS ${el('brightRange').value}`); });
-
-LIGNES.forEach(l => {
-  const opt = document.createElement('option');
-  opt.value = l.code; opt.textContent = l.code + (l.alt ? ' (alterne)' : '');
-  el('ligneSelect').appendChild(opt);
-});
-el('ligneSelect').addEventListener('change', updateSwatch);
-updateSwatch();
-
-el('lineStartBtn').addEventListener('click', async () => {
-  await sendRaw(`LINE ${el('ligneSelect').value} START`);
-  await refreshAll();
-});
-el('lineAddBtn').addEventListener('click', async () => {
-  await sendRaw(`LINE ${el('ligneSelect').value} ADD`);
-  await refreshAll();
-});
-el('lineDelBtn').addEventListener('click', async () => {
-  await sendRaw(`LINE ${el('ligneSelect').value} DEL`);
-  await refreshAll();
-});
-
-el('importBtn').addEventListener('click', () => runImport(el('importInput').value));
-
-el('exportCppBtn').addEventListener('click', () => sendRaw('EXPORT CPP'));
-el('exportCsvBtn').addEventListener('click', () => sendRaw('EXPORT CSV'));
-el('copyExportBtn').addEventListener('click', () => {
-  const ta = el('exportOutput');
-  ta.select();
-  navigator.clipboard.writeText(ta.value).then(() => log('Copié dans le presse-papier.')).catch(() => {});
-});
-
-el('clearAllBtn').addEventListener('click', async () => {
-  if (!confirm('Effacer TOUT le tagging de calibration sur la carte ? Action irréversible.')) return;
-  await sendRaw('CLEAR ALL CONFIRM');
-  await refreshAll();
-});
-
-el('manualForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const input = el('manualInput');
-  const text = input.value.trim();
-  if (!text) return;
-  await sendRaw(text);
-  input.value = '';
-});
-
-document.addEventListener('keydown', (e) => {
-  const tag = (e.target.tagName || '').toUpperCase();
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-  if (!port) return;
-  if (e.key === 'ArrowUp') { gotoPos(uiState.bus, uiState.index + 1); e.preventDefault(); }
-  else if (e.key === 'ArrowDown') { gotoPos(uiState.bus, uiState.index - 1); e.preventDefault(); }
-  else if (e.key === 'ArrowLeft') { gotoPos(uiState.bus - 1, uiState.index); e.preventDefault(); }
-  else if (e.key === 'ArrowRight') { gotoPos(uiState.bus + 1, uiState.index); e.preventDefault(); }
-});
-
-if (!('serial' in navigator)) {
-  el('banner').style.display = 'block';
-  el('banner').textContent = "Web Serial non disponible dans ce navigateur. Ouvre cette page avec Chrome ou Edge.";
+function sendManualCmd() {
+  const inp = document.getElementById("manualCmdInput");
+  if (!inp.value.trim()) return;
+  sendCmd(inp.value.trim());
+  inp.value = "";
 }
+
+// =============================================================================
+// 3. ONGLET 2 : ÉDITEUR DE COULEURS DES 14 LIGNES
+// =============================================================================
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map(x => Number(x).toString(16).padStart(2, "0")).join("");
+}
+function hexToRgb(hex) {
+  const v = parseInt(hex.replace("#", ""), 16);
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+}
+function getColorObj(code) {
+  return lineColors.find(c => c.code === code) || { code, r1:255, g1:255, b1:255, r2:255, g2:255, b2:255, alt:false };
+}
+
+function renderColorsTable() {
+  const tbody = document.getElementById("colorsTableBody");
+  tbody.innerHTML = "";
+  lineColors.forEach((c, idx) => {
+    const hex1 = rgbToHex(c.r1, c.g1, c.b1);
+    const hex2 = rgbToHex(c.r2, c.g2, c.b2);
+    const badgeBg = c.alt ? `linear-gradient(90deg, ${hex1} 50%, ${hex2} 50%)` : hex1;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="line-pill" style="background:${badgeBg}">${c.code}</span></td>
+      <td><div style="width:60px;height:24px;border-radius:6px;background:${badgeBg};border:1px solid #fff3"></div></td>
+      <td><input type="color" value="${hex1}" oninput="updateLineColorHex(${idx}, 1, this.value)"></td>
+      <td>
+        <input type="number" min="0" max="255" value="${c.r1}" style="width:58px" oninput="updateLineColorRgb(${idx},'r1',this.value)">
+        <input type="number" min="0" max="255" value="${c.g1}" style="width:58px" oninput="updateLineColorRgb(${idx},'g1',this.value)">
+        <input type="number" min="0" max="255" value="${c.b1}" style="width:58px" oninput="updateLineColorRgb(${idx},'b1',this.value)">
+      </td>
+      <td><input type="checkbox" ${c.alt ? "checked" : ""} onchange="updateLineAlt(${idx}, this.checked)"> Alterner</td>
+      <td>
+        <input type="color" value="${hex2}" ${c.alt ? "" : "disabled"} oninput="updateLineColorHex(${idx}, 2, this.value)">
+      </td>
+      <td>
+        <button class="primary" onclick="testLineColorOnBoard(${idx})">Tester sur PCB</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function pushColorToBoard(c) {
+  sendCmd(`COLOR ${c.code} ${c.r1} ${c.g1} ${c.b1} ${c.r2} ${c.g2} ${c.b2} ${c.alt ? 1 : 0}`);
+}
+
+function updateLineColorHex(idx, which, hex) {
+  const rgb = hexToRgb(hex);
+  const c = lineColors[idx];
+  if (which === 1) { c.r1 = rgb.r; c.g1 = rgb.g; c.b1 = rgb.b; if (!c.alt) { c.r2 = rgb.r; c.g2 = rgb.g; c.b2 = rgb.b; } }
+  else { c.r2 = rgb.r; c.g2 = rgb.g; c.b2 = rgb.b; }
+  renderColorsTable();
+  pushColorToBoard(c);
+}
+
+function updateLineColorRgb(idx, field, val) {
+  const c = lineColors[idx];
+  c[field] = Math.max(0, Math.min(255, parseInt(val) || 0));
+  if (!c.alt) { c.r2 = c.r1; c.g2 = c.g1; c.b2 = c.b1; }
+  renderColorsTable();
+  pushColorToBoard(c);
+}
+
+function updateLineAlt(idx, checked) {
+  const c = lineColors[idx];
+  c.alt = checked;
+  renderColorsTable();
+  pushColorToBoard(c);
+}
+
+async function testLineColorOnBoard(idx) {
+  const c = lineColors[idx];
+  await sendCmd(`COLOR ${c.code} ${c.r1} ${c.g1} ${c.b1} ${c.r2} ${c.g2} ${c.b2} ${c.alt ? 1 : 0}`);
+  await sendCmd(`REVIEW ${c.code}`);
+}
+
+async function saveAllColorsToBoard() {
+  for (const c of lineColors) {
+    await sendCmd(`COLOR ${c.code} ${c.r1} ${c.g1} ${c.b1} ${c.r2} ${c.g2} ${c.b2} ${c.alt ? 1 : 0}`);
+  }
+  await sendCmd("COLORSAVE");
+  alert("Couleurs envoyées et sauvegardées en mémoire permanente (NVS) !");
+}
+
+function resetDefaultColors() {
+  lineColors = JSON.parse(JSON.stringify(DEFAULT_COLORS));
+  renderColorsTable();
+  sendCmd("COLORRESET");
+}
+
+// =============================================================================
+// 4. ONGLET 1 : COMPARATEUR TEMPS RÉEL ("VRAIE VIE" CFF vs CARTE PCB)
+// =============================================================================
+const LINE_CHAINS = [
+  { ligne:"R1",   gares:["GRAN","YVER","RENE","LAUS","VEVE","MONT","VILL","AIGL","BEX","STMA"] },
+  { ligne:"R2",   gares:["YVER","RENE","LAUS","VEVE","MONT","VILL","AIGL","BEX"] },
+  { ligne:"R3",   gares:["VALL","RENE","LAUS","VEVE"] },
+  { ligne:"R4",   gares:["BRAS","VALL","RENE","LAUS","VEVE"] },
+  { ligne:"R7",   gares:["PUID","VEVE"] },
+  { ligne:"R8",   gares:["ALLA","MORG","RENE","LAUS","PUID","PALE","PAYE","AVEN"] },
+  { ligne:"R9",   gares:["ALLA","MORG","RENE","LAUS","PUID","PALE","PAYE","AVEN","MORA"] },
+  { ligne:"R13",  gares:["YVER","GRAN","NEUC"] },
+  { ligne:"RE33", gares:["NYON","GLAN","ROLL","ALLA","MORG","RENE","LAUS","VEVE","MONT","VILL","AIGL","BEX","STMA"] },
+  { ligne:"S5",   gares:["NEUC","INS","KERZ","HORS"] },
+  { ligne:"S5",   gares:["AVEN","MORA","KERZ","HORS"] },
+  { ligne:"S30",  gares:["YVER","ESTA","PAYE"] },
+  { ligne:"S30",  gares:["YVER","FRIB"] },
+  { ligne:"S40",  gares:["PUID","PALE","ROMO","FRIB"] },
+  { ligne:"S41",  gares:["PUID","PALE","ROMO","FRIB"] },
+  { ligne:"S52",  gares:["PAYE","AVEN","MORA","KERZ","HORS"] },
+  { ligne:"S52",  gares:["INS","KERZ","HORS"] }
+];
+
+// Temps de trajet réels CFF (secondes) identiques au firmware (mode_live.cpp)
+const REAL_TRAVEL_SEC = {
+  "BRAS-VALL":2460, "RENE-VALL":1980, "RENE-YVER":1380, "GRAN-YVER":300,
+  "GRAN-NEUC":1680, "GLAN-NYON":240,  "GLAN-ROLL":300,  "ALLA-ROLL":300,
+  "ALLA-MORG":420,  "MORG-RENE":450,  "LAUS-RENE":360,  "LAUS-VEVE":900,
+  "MONT-VEVE":420,  "MONT-VILL":300,  "AIGL-VILL":540,  "AIGL-BEX":360,
+  "BEX-STMA":240,   "LAUS-PUID":720,  "PUID-VEVE":780,  "PALE-PUID":420,
+  "PALE-ROMO":900,  "FRIB-ROMO":1320, "PALE-PAYE":2160, "AVEN-PAYE":540,
+  "AVEN-MORA":480,  "KERZ-MORA":540,  "HORS-KERZ":1080, "INS-KERZ":420,
+  "INS-NEUC":1080,  "ESTA-YVER":1140, "ESTA-PAYE":600,  "FRIB-YVER":3120
+};
+
+function getTravelSec(codeA, codeB) {
+  const key = [codeA, codeB].sort().join("-");
+  const scale = parseInt(document.getElementById("cfg_travelScalePct").value) || 100;
+  return Math.round(((REAL_TRAVEL_SEC[key] || 480) * scale) / 100);
+}
+
+function getOrderedSegmentLedsJs(codeA, codeB) {
+  const gA = gares.find(g => g.code === codeA);
+  const gB = gares.find(g => g.code === codeB);
+  let leds = [];
+  if ((codeA === "YVER" && codeB === "RENE") || (codeA === "RENE" && codeB === "YVER")) {
+    for (const b of [3, 0, 1]) {
+      for (const t of troncons) {
+        if (t.bus !== b) continue;
+        if (t.lignes.some(l => (l.amont === "YVER" && l.aval === "RENE") || (l.amont === "RENE" && l.aval === "YVER"))) {
+          leds.push({ bus: t.bus, index: t.index });
+        }
+      }
+    }
+    if (codeA === "RENE") leds.reverse();
+    return leds;
+  }
+  for (const t of troncons) {
+    if (t.lignes.some(l => (l.amont === codeA && l.aval === codeB) || (l.amont === codeB && l.aval === codeA))) {
+      leds.push({ bus: t.bus, index: t.index });
+    }
+  }
+  if (leds.length > 1 && gA && gB) {
+    let rev = false;
+    if (leds[0].bus === gA.bus && leds[leds.length - 1].bus === gA.bus) {
+      if (Math.abs(leds[0].index - gA.index) > Math.abs(leds[leds.length - 1].index - gA.index)) rev = true;
+    } else if (leds[leds.length - 1].bus === gA.bus && Math.abs(leds[leds.length - 1].index - gA.index) <= 4) {
+      rev = true;
+    } else if (leds[0].bus === gB.bus && Math.abs(leds[0].index - gB.index) <= 4) {
+      rev = true;
+    } else if (codeA === "VEVE" && codeB === "PUID") {
+      rev = true;
+    }
+    if (rev) leds.reverse();
+  }
+  return leds;
+}
+
+function resolveLineJs(cat, num, stationApi, to) {
+  cat = (cat || "").toUpperCase();
+  num = (num || "").toUpperCase();
+  const comb = cat + num;
+  if (LINE_CODES.includes(comb)) return comb;
+  if (LINE_CODES.includes(num)) return num;
+  const alias = { S1:"R1", S2:"R2", S3:"R3", S4:"R4", S7:"R7", S8:"R8", S9:"R9" };
+  if (alias[comb]) return alias[comb];
+  if (cat === "RE") return "RE33";
+  if (cat === "R" || cat === "S") {
+    const s = (stationApi + " " + (to || "")).toLowerCase();
+    if (s.includes("brassus")) return "R4";
+    if (s.includes("vallorbe")) return "R3";
+    if (s.includes("estavayer")) return "S30";
+    if (s.includes("romont") || s.includes("fribourg") || s.includes("freiburg")) return "S40";
+    if (s.includes("kerzers") || s.includes("bern") || s.includes("ins")) return "S5";
+    if (s.includes("neuch") && (s.includes("grandson") || s.includes("yverdon"))) return "R13";
+    if (s.includes("payerne") || s.includes("avenches") || s.includes("pal")) return "R8";
+    if (s.includes("puidoux") && s.includes("vevey")) return "R7";
+    if (cat === "R") return "R1";
+  }
+  return null;
+}
+
+function matchDestCodeJs(dest) {
+  if (!dest) return null;
+  const d = dest.toLowerCase();
+  for (const g of gares) {
+    if (g.api && d.includes(g.api.toLowerCase())) return g.code;
+  }
+  if (d.includes("gen") || d.includes("annemasse") || d.includes("coppet")) return "NYON";
+  if (d.includes("bern")) return "HORS";
+  if (d.includes("murten")) return "MORA";
+  if (d.includes("freiburg")) return "FRIB";
+  if (d.includes("pal")) return "PALE";
+  if (d.includes("neuch")) return "NEUC";
+  if (d.includes("yverdon")) return "YVER";
+  if (d.includes("estavayer")) return "ESTA";
+  if (d.includes("maurice") || d.includes("martigny")) return "STMA";
+  if (d.includes("brassus")) return "BRAS";
+  return null;
+}
+
+let computedLiveTrains = [];
+let liveBoardsByGare = {};
+
+async function fetchRealLifeTrains() {
+  const badge = document.getElementById("liveLastUpdate");
+  badge.textContent = "Interrogation de transport.opendata.ch...";
+  badge.className = "badge warn";
+
+  const activeGares = gares.filter(g => g.pivot && g.api);
+  liveBoardsByGare = {};
+
+  await Promise.all(activeGares.map(async g => {
+    const url = `https://transport.opendata.ch/v1/stationboard?station=${encodeURIComponent(g.api)}&limit=20`
+      + `&fields[]=stationboard/category&fields[]=stationboard/number&fields[]=stationboard/to`
+      + `&fields[]=stationboard/stop/departure&fields[]=stationboard/stop/delay`;
+    try {
+      const r = await fetch(url);
+      const j = await r.json();
+      const entries = [];
+      for (const e of (j.stationboard || [])) {
+        const lg = resolveLineJs(e.category, e.number, g.api, e.to);
+        if (!lg || !e.stop || !e.stop.departure) continue;
+        const sched = Math.floor(new Date(e.stop.departure).getTime() / 1000);
+        const delay = e.stop.delay || 0;
+        entries.push({
+          ligne: lg,
+          to: e.to || "",
+          scheduled: sched,
+          realtime: sched + delay * 60,
+          delayMin: delay
+        });
+      }
+      liveBoardsByGare[g.code] = entries;
+    } catch (err) {
+      liveBoardsByGare[g.code] = [];
+    }
+  }));
+
+  recomputeRealLifePositions();
+  renderLiveStationsTable();
+  badge.textContent = "Mis à jour à " + new Date().toLocaleTimeString() + ` (${computedLiveTrains.length} trains actifs)`;
+  badge.className = "badge ok";
+}
+
+function recomputeRealLifePositions() {
+  const now = Math.floor(Date.now() / 1000);
+  const winSec = parseInt(document.getElementById("cfg_stationWindowSec").value) || 35;
+  const trains = [];
+  const seenKey = new Set();
+
+  const pushTrain = (t) => {
+    const k = `${t.ligne}-${t.led.bus}-${t.led.index}`;
+    if (seenKey.has(k)) return;
+    seenKey.add(k);
+    trains.push(t);
+  };
+
+  // 1. Trains à quai
+  for (const g of gares) {
+    if (!g.pivot) continue;
+    for (const e of (liveBoardsByGare[g.code] || [])) {
+      const dt = e.realtime - now;
+      if (dt >= -winSec && dt <= winSec) {
+        pushTrain({
+          ligne: e.ligne,
+          where: `En gare de ${g.code} (${g.api})`,
+          to: e.to,
+          tA: e.realtime,
+          tB: e.realtime,
+          delayMin: e.delayMin,
+          pct: 100,
+          led: { bus: g.bus, index: g.index }
+        });
+      }
+    }
+  }
+
+  // 2. Trains en circulation entre gareA et gareB
+  for (const ch of LINE_CHAINS) {
+    const lg = ch.ligne;
+    for (let s = 0; s + 1 < ch.gares.length; s++) {
+      for (let dir = 0; dir < 2; dir++) {
+        const posA = dir === 0 ? s : s + 1;
+        const posB = dir === 0 ? s + 1 : s;
+        const codeA = ch.gares[posA];
+        const codeB = ch.gares[posB];
+        const segLeds = getOrderedSegmentLedsJs(codeA, codeB);
+        if (segLeds.length === 0) continue;
+
+        const travelSec = getTravelSec(codeA, codeB);
+        for (const eB of (liveBoardsByGare[codeB] || [])) {
+          if (eB.ligne !== lg) continue;
+          const dtB = eB.realtime - now;
+          if (dtB <= winSec || dtB > travelSec + 60) continue;
+
+          const destCode = matchDestCodeJs(eB.to);
+          const destIdx = destCode ? ch.gares.indexOf(destCode) : -1;
+          if (destIdx >= 0) {
+            if (dir === 0 && destIdx < posB) continue;
+            if (dir === 1 && destIdx > posB) continue;
+          }
+
+          let tA = eB.realtime - travelSec;
+          let blocked = false;
+          for (const eA of (liveBoardsByGare[codeA] || [])) {
+            if (eA.ligne !== lg) continue;
+            const diff = eB.realtime - eA.realtime;
+            if (diff > 30 && diff <= travelSec + 300) {
+              if (eA.realtime > now - 15) blocked = true;
+              else tA = eA.realtime;
+              break;
+            }
+          }
+          if (blocked) continue;
+
+          const total = (eB.realtime - winSec) - tA;
+          const elapsed = now - tA;
+          if (total > 0 && elapsed >= 0 && elapsed < total) {
+            const idx = Math.min(segLeds.length - 1, Math.floor((elapsed * segLeds.length) / total));
+            const pct = Math.round((elapsed * 100) / total);
+            pushTrain({
+              ligne: lg,
+              where: `${codeA} → ${codeB} (LED ${idx + 1}/${segLeds.length})`,
+              to: eB.to,
+              tA,
+              tB: eB.realtime,
+              delayMin: eB.delayMin,
+              pct,
+              led: segLeds[idx]
+            });
+          }
+        }
+      }
+    }
+  }
+
+  computedLiveTrains = trains;
+  renderLiveTrainsTable();
+}
+
+function fmtTimeSec(epoch) {
+  return new Date(epoch * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function renderLiveTrainsTable() {
+  const tbody = document.getElementById("liveTrainsBody");
+  tbody.innerHTML = "";
+  if (computedLiveTrains.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted)">Aucun train RER détecté en circulation à cet instant.</td></tr>`;
+    return;
+  }
+  computedLiveTrains.forEach((t, i) => {
+    const c = getColorObj(t.ligne);
+    const hex = rgbToHex(c.r1, c.g1, c.b1);
+    const blinkCls = t.delayMin >= 5 ? "blink-5" : (t.delayMin >= 3 ? "blink-3" : (t.delayMin >= 1 ? "blink-1" : ""));
+    const delayLabel = t.delayMin > 0 ? `+${t.delayMin} min (clignote)` : `À l'heure (fixe)`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="line-pill ${blinkCls}" style="background:${hex}">${t.ligne}</span></td>
+      <td><b>${t.where}</b></td>
+      <td>${t.to}</td>
+      <td>${fmtTimeSec(t.tA)} → ${fmtTimeSec(t.tB)}</td>
+      <td><span class="badge ${t.delayMin > 0 ? 'warn' : 'ok'}">${delayLabel}</span></td>
+      <td>
+        <div class="progress-bar"><div class="progress-fill" style="width:${t.pct}%;background:${hex}"></div></div>
+        <span>${t.pct}%</span>
+      </td>
+      <td><code>Bus ${t.led.bus} | LED #${t.led.index}</code></td>
+      <td><button class="primary" onclick="highlightSingleTrainOnBoard(${i})">Localiser sur PCB</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderLiveStationsTable() {
+  const tbody = document.getElementById("liveStationsBody");
+  tbody.innerHTML = "";
+  for (const g of gares.filter(x => x.pivot)) {
+    const list = liveBoardsByGare[g.code] || [];
+    const next = list[0];
+    const tr = document.createElement("tr");
+    if (next) {
+      const c = getColorObj(next.ligne);
+      const hex = rgbToHex(c.r1, c.g1, c.b1);
+      tr.innerHTML = `
+        <td><b>${g.code}</b></td>
+        <td>${g.api}</td>
+        <td><code>Bus ${g.bus} #${g.index}</code></td>
+        <td><span class="line-pill" style="background:${hex}">${next.ligne}</span></td>
+        <td>${fmtTimeSec(next.realtime)}</td>
+        <td>${next.delayMin > 0 ? `<span class="badge warn">+${next.delayMin} min</span>` : `<span class="badge ok">+0 min</span>`}</td>
+        <td>${next.to}</td>
+        <td><button onclick="sendCmd('PIXEL ${g.bus} ${g.index} ${c.r1} ${c.g1} ${c.b1}')">Allumer Gare</button></td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td><b>${g.code}</b></td>
+        <td>${g.api}</td>
+        <td><code>Bus ${g.bus} #${g.index}</code></td>
+        <td colspan="4" style="color:var(--muted)">Aucun départ RER proche</td>
+        <td><button onclick="sendCmd('PIXEL ${g.bus} ${g.index} 255 255 255')">Tester LED</button></td>
+      `;
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+async function highlightSingleTrainOnBoard(idx) {
+  const t = computedLiveTrains[idx];
+  if (!t) return;
+  const c = getColorObj(t.ligne);
+  await sendCmd("CLEARLEDS");
+  await sendCmd(`PIXEL ${t.led.bus} ${t.led.index} ${c.r1} ${c.g1} ${c.b1}`);
+}
+
+async function projectAllLiveTrainsToBoard() {
+  if (computedLiveTrains.length === 0) {
+    await fetchRealLifeTrains();
+  }
+  await sendCmd("CLEARLEDS");
+  for (const t of computedLiveTrains) {
+    const c = getColorObj(t.ligne);
+    await sendCmd(`PIXEL ${t.led.bus} ${t.led.index} ${c.r1} ${c.g1} ${c.b1}`);
+  }
+}
+
+// =============================================================================
+// 5. ONGLET 3 : REMAPPING & TEST DES LIGNES / GARES
+// =============================================================================
+let selectedBus = 0;
+let selectedLedIdx = 0;
+let animTimer = null;
+
+function initSelectOptions() {
+  const selLine = document.getElementById("remapLineSelect");
+  const addLine = document.getElementById("addLineCodeSelect");
+  selLine.innerHTML = "";
+  addLine.innerHTML = "";
+  for (const code of LINE_CODES) {
+    selLine.innerHTML += `<option value="${code}">Ligne ${code}</option>`;
+    addLine.innerHTML += `<option value="${code}">${code}</option>`;
+  }
+  const amSel = document.getElementById("addAmontSelect");
+  const avSel = document.getElementById("addAvalSelect");
+  amSel.innerHTML = "";
+  avSel.innerHTML = "";
+  for (const g of gares) {
+    amSel.innerHTML += `<option value="${g.code}">${g.code} (${g.api || "virtuelle"})</option>`;
+    avSel.innerHTML += `<option value="${g.code}">${g.code} (${g.api || "virtuelle"})</option>`;
+  }
+}
+
+function renderRemapView() {
+  const code = document.getElementById("remapLineSelect").value || "R1";
+  const c = getColorObj(code);
+  const hex = rgbToHex(c.r1, c.g1, c.b1);
+  const leds = troncons.filter(t => t.lignes.some(l => l.code === code));
+
+  let html = `<div style="margin-bottom:10px"><span class="line-pill" style="background:${hex}">${code}</span> <b>${leds.length} LEDs de voie</b> associées à cette ligne :</div>`;
+  html += `<table><thead><tr><th>LED Physique</th><th>Gare Amont</th><th>Gare Aval</th><th>Actions</th></tr></thead><tbody>`;
+  leds.forEach(t => {
+    const l = t.lignes.find(x => x.code === code);
+    html += `<tr>
+      <td><code>Bus ${t.bus} | LED #${t.index}</code></td>
+      <td><b>${l.amont}</b></td>
+      <td><b>${l.aval}</b></td>
+      <td>
+        <button onclick="selectLed(${t.bus}, ${t.index})">Éditer</button>
+        <button class="danger" onclick="removeLineFromLed(${t.bus}, ${t.index}, '${code}')">Retirer ${code}</button>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById("lineSegmentsSummary").innerHTML = html;
+}
+
+function previewSelectedLineOnBoard() {
+  const code = document.getElementById("remapLineSelect").value;
+  sendCmd(`REVIEW ${code}`);
+}
+
+function toggleLineAnimation() {
+  const btn = document.getElementById("btnAnimLine");
+  if (animTimer) {
+    clearInterval(animTimer);
+    animTimer = null;
+    btn.textContent = "Animer un train de test LED par LED";
+    return;
+  }
+  const code = document.getElementById("remapLineSelect").value;
+  const c = getColorObj(code);
+  const leds = troncons.filter(t => t.lignes.some(l => l.code === code));
+  if (leds.length === 0) return;
+
+  let step = 0;
+  btn.textContent = "Arrêter l'animation de test";
+  animTimer = setInterval(async () => {
+    const t = leds[step % leds.length];
+    await sendCmd("CLEARLEDS");
+    await sendCmd(`PIXEL ${t.bus} ${t.index} ${c.r1} ${c.g1} ${c.b1}`);
+    step++;
+  }, 260);
+}
+
+function renderBusMatrix() {
+  selectedBus = parseInt(document.getElementById("busSelect").value) || 0;
+  const maxLeds = parseInt(document.getElementById("maxBusLedsInput").value) || 95;
+  const container = document.getElementById("ledMatrix");
+  container.innerHTML = "";
+
+  for (let i = 0; i < maxLeds; i++) {
+    const g = gares.find(x => x.bus === selectedBus && x.index === i);
+    const t = troncons.find(x => x.bus === selectedBus && x.index === i);
+    const cell = document.createElement("div");
+    cell.className = "led-cell" + (g ? " gare" : "") + (i === selectedLedIdx ? " selected" : "");
+
+    if (g) {
+      cell.style.background = "#1e293b";
+      cell.innerHTML = `<div>#${i}</div><div style="color:#fcd34d">${g.code}</div>`;
+    } else if (t && t.lignes.length > 0) {
+      const c = getColorObj(t.lignes[0].code);
+      const hex = rgbToHex(c.r1, c.g1, c.b1);
+      cell.style.borderTop = `4px solid ${hex}`;
+      cell.innerHTML = `<div>#${i}</div><div style="font-size:10px;color:#cbd5e1">${t.lignes.map(l => l.code).join("+")}</div>`;
+    } else {
+      cell.innerHTML = `<div style="color:#64748b">#${i}</div><div style="font-size:10px;color:#475569">-</div>`;
+    }
+    cell.onclick = () => selectLed(selectedBus, i);
+    container.appendChild(cell);
+  }
+}
+
+function selectLed(bus, idx) {
+  selectedBus = bus;
+  selectedLedIdx = idx;
+  document.getElementById("busSelect").value = String(bus);
+  renderBusMatrix();
+  sendCmd(`GOTO ${bus} ${idx}`);
+
+  const g = gares.find(x => x.bus === bus && x.index === idx);
+  const t = troncons.find(x => x.bus === bus && x.index === idx);
+  const title = document.getElementById("ledEditorTitle");
+  const listDiv = document.getElementById("selectedLedLinesList");
+
+  if (g) {
+    title.textContent = `Bus ${bus} | LED #${idx} — GARE : ${g.code} (${g.api})`;
+    listDiv.innerHTML = `<span class="badge warn">Cette LED est la gare ${g.code}</span>`;
+  } else if (t && t.lignes.length > 0) {
+    title.textContent = `Bus ${bus} | LED #${idx} — Tronçon (${t.lignes.length} ligne(s))`;
+    listDiv.innerHTML = t.lignes.map(l => {
+      const c = getColorObj(l.code);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0">
+        <span><span class="line-pill" style="background:${rgbToHex(c.r1,c.g1,c.b1)}">${l.code}</span> Amont: <b>${l.amont}</b> → Aval: <b>${l.aval}</b></span>
+        <button class="danger" onclick="removeLineFromLed(${bus},${idx},'${l.code}')">Supprimer</button>
+      </div>`;
+    }).join("");
+  } else {
+    title.textContent = `Bus ${bus} | LED #${idx} — Non assignée`;
+    listDiv.innerHTML = `<span style="color:var(--muted)">Aucune ligne sur cette LED.</span>`;
+  }
+}
+
+async function addOrUpdateLineOnSelectedLed() {
+  const code = document.getElementById("addLineCodeSelect").value;
+  const amont = document.getElementById("addAmontSelect").value;
+  const aval = document.getElementById("addAvalSelect").value;
+
+  gares = gares.filter(g => !(g.bus === selectedBus && g.index === selectedLedIdx));
+  let t = troncons.find(x => x.bus === selectedBus && x.index === selectedLedIdx);
+  if (!t) {
+    t = { bus: selectedBus, index: selectedLedIdx, lignes: [] };
+    troncons.push(t);
+  }
+  const existing = t.lignes.find(l => l.code === code);
+  if (existing) {
+    existing.amont = amont;
+    existing.aval = aval;
+  } else if (t.lignes.length < 4) {
+    t.lignes.push({ code, amont, aval });
+  }
+  await sendCmd(`GOTO ${selectedBus} ${selectedLedIdx}`);
+  await sendCmd(`LINE ${code} ADD`);
+  await sendCmd(`SETBORDERS ${code} ${amont} ${aval}`);
+  selectLed(selectedBus, selectedLedIdx);
+  renderRemapView();
+}
+
+async function removeLineFromLed(bus, idx, code) {
+  const t = troncons.find(x => x.bus === bus && x.index === idx);
+  if (t) {
+    t.lignes = t.lignes.filter(l => l.code !== code);
+    if (t.lignes.length === 0) troncons = troncons.filter(x => x !== t);
+  }
+  await sendCmd(`GOTO ${bus} ${idx}`);
+  await sendCmd(`LINE ${code} DEL`);
+  selectLed(bus, idx);
+  renderRemapView();
+}
+
+async function setSelectedLedAsGare() {
+  const code = prompt("Code court de la gare (4 lettres max, ex: LAUS) :");
+  if (!code) return;
+  const api = prompt("Nom exact CFF pour l'API (ex: Lausanne) :", code);
+  if (api === null) return;
+  troncons = troncons.filter(x => !(x.bus === selectedBus && x.index === selectedLedIdx));
+  const existing = gares.find(g => g.code.toUpperCase() === code.toUpperCase());
+  if (existing) {
+    existing.bus = selectedBus;
+    existing.index = selectedLedIdx;
+    existing.api = api;
+  } else {
+    gares.push({ idx: gares.length, code: code.toUpperCase(), api, bus: selectedBus, index: selectedLedIdx, pivot: true });
+  }
+  await sendCmd(`GOTO ${selectedBus} ${selectedLedIdx}`);
+  await sendCmd(`STATION ${code.toUpperCase()} ${api.replace(/ /g, "_")} PIVOT`);
+  initSelectOptions();
+  selectLed(selectedBus, selectedLedIdx);
+}
+
+async function untagSelectedLed() {
+  gares = gares.filter(g => !(g.bus === selectedBus && g.index === selectedLedIdx));
+  troncons = troncons.filter(t => !(t.bus === selectedBus && t.index === selectedLedIdx));
+  await sendCmd(`GOTO ${selectedBus} ${selectedLedIdx}`);
+  await sendCmd("UNTAG");
+  selectLed(selectedBus, selectedLedIdx);
+  renderRemapView();
+}
+
+// =============================================================================
+// 6. ONGLET 4 : SETTINGS API, RETARDS & LUMINOSITÉ
+// =============================================================================
+function populateSettingsForm(s) {
+  const keys = ["pollFastMs","pollNormalMs","apiLimit","stationWindowSec","travelScalePct","blinkBaseHalfMs","blinkStepPerMinMs","scrollSpeedMs"];
+  keys.forEach(k => {
+    if (s[k] !== undefined && document.getElementById("cfg_" + k)) {
+      document.getElementById("cfg_" + k).value = s[k];
+    }
+  });
+  if (s.ledBright !== undefined) {
+    document.getElementById("cfg_ledBright").value = s.ledBright;
+    document.getElementById("lbl_ledBright").textContent = s.ledBright + "%";
+  }
+  if (s.dispBright !== undefined) {
+    document.getElementById("cfg_dispBright").value = s.dispBright;
+    document.getElementById("lbl_dispBright").textContent = s.dispBright;
+  }
+}
+
+async function applyAndSaveAllSettings() {
+  const keys = ["pollFastMs","pollNormalMs","apiLimit","stationWindowSec","travelScalePct","blinkBaseHalfMs","blinkStepPerMinMs","scrollSpeedMs","ledBright","dispBright"];
+  for (const k of keys) {
+    const el = document.getElementById("cfg_" + k);
+    if (el) await sendCmd(`SET ${k} ${el.value}`);
+  }
+  await sendCmd("SAVESETTINGS");
+  alert("Tous les paramètres ont été appliqués et sauvegardés en NVS !");
+}
+
+async function resetAllSettings() {
+  await sendCmd("RESETSETTINGS");
+  populateSettingsForm({
+    pollFastMs:20, pollNormalMs:100, apiLimit:20, stationWindowSec:35,
+    travelScalePct:100, blinkBaseHalfMs:660, blinkStepPerMinMs:108, scrollSpeedMs:220,
+    ledBright:15, dispBright:4
+  });
+}
+
+// =============================================================================
+// 7. ONGLET 5 : EXPORT CODE C++
+// =============================================================================
+function generateColorsCpp() {
+  let out = `// Couleurs calibrées — à coller dans src/colors.cpp\nconst LigneSpec DEFAULT_SPECS[(size_t)LigneId::COUNT] = {\n`;
+  for (const c of lineColors) {
+    out += `  { {${c.r1}, ${c.g1}, ${c.b1}}, {${c.r2}, ${c.g2}, ${c.b2}}, ${c.alt ? "true " : "false"} }, // ${c.code}\n`;
+  }
+  out += `};\n`;
+  document.getElementById("exportCodeBox").textContent = out;
+}
+
+function generateStationsCpp() {
+  const codeToIdx = {};
+  gares.forEach((g, i) => codeToIdx[g.code] = i);
+  let out = `// Tronçons générés depuis TrainBoard Studio — à coller dans src/stations.cpp\nconst Troncon TRONCONS[] = {\n`;
+  const sorted = [...troncons].sort((a, b) => a.bus !== b.bus ? a.bus - b.bus : a.index - b.index);
+  for (const t of sorted) {
+    if (!t.lignes.length) continue;
+    const tl = t.lignes.map(l => `TL(${l.code}, ${codeToIdx[l.amont] ?? 0}, ${codeToIdx[l.aval] ?? 0})`).join(", ");
+    out += `  { {${t.bus}, ${t.index}}, { ${tl} }, ${t.lignes.length} },\n`;
+  }
+  out += `};\n`;
+  document.getElementById("exportCodeBox").textContent = out;
+}
+
+function copyExportBox() {
+  navigator.clipboard.writeText(document.getElementById("exportCodeBox").textContent);
+  alert("Code copié dans le presse-papiers !");
+}
+
+function openTab(id, btn) {
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+}
+
+// Initialisation au chargement
+initSelectOptions();
+renderColorsTable();
+renderBusMatrix();
+renderRemapView();
+selectLed(0, 1);
 </script>
 </body>
 </html>

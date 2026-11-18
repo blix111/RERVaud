@@ -11,12 +11,21 @@ struct LedRef {
   uint8_t index;
 };
 
+enum class LHandStatus : uint8_t {
+  CONFORME = 0,      // Vert : conforme entièrement à la LHand
+  PARTIEL = 1,       // Orange : partiellement conforme à la LHand
+  NON_CONFORME = 2,  // Rouge : non conforme à la LHand
+  INCONNU = 3        // Bleu : statut inconnu
+};
+
 struct Gare {
   const char* nomCourt;   // code 4 car. max, affiché sur le 14 segments
   const char* nomAPI;     // nom exact attendu par transport.opendata.ch
   LedRef led;
-  bool pivotAPI;          // fait partie des 7 gares interrogées sur l'API
-  uint8_t niveauPMR;      // 0 = inconnu, cf. base PMR à définir en Phase 3
+  bool pivotAPI;          // fait partie des gares gérées
+  uint8_t niveauPMR;      // 0 = inconnu (conservé pour rétrocompatibilité)
+  uint32_t voyageurs;     // Fréquentation voyageurs / jour
+  LHandStatus lhand;      // Statut d'accessibilité LHand
 };
 
 // idxGareAmont/idxGareAval sont par ligne, et non par LED : sur un embranchement,
@@ -41,3 +50,5 @@ extern const Troncon TRONCONS[];
 extern const uint8_t NB_TRONCONS;
 
 int findGareIndexByCode(const char* nomCourt);
+uint8_t affluencePercentForGare(const Gare& g);
+LineColor colorForLHand(LHandStatus status);

@@ -9,8 +9,10 @@ namespace LedDriver {
   void show(uint8_t bus);
   void showAll();
 
-  // Plafond de luminosite par canal, ajustable a l'execution (defaut: LED_BRIGHTNESS).
-  // N'affecte que les futurs setPixel() ; pas persiste (RAM uniquement).
+  // Luminosité globale (0..100%)
   void setBrightness(uint8_t v);
   uint8_t getBrightness();
+  void setBrightnessPercent(uint8_t percent);
+  uint8_t getBrightnessPercent();
+  void saveBrightness();
 }

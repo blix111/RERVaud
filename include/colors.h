@@ -19,7 +19,8 @@ struct LigneSpec {
 
 constexpr uint32_t LIGNE_ALTERNATION_PERIOD_MS = 1500;
 
-extern const LigneSpec LIGNE_SPECS[(size_t)LigneId::COUNT];
+extern LigneSpec LIGNE_SPECS[(size_t)LigneId::COUNT];
+extern uint32_t g_ligneAlternationPeriodMs;
 extern const char* const LIGNE_NOMS[(size_t)LigneId::COUNT];
 
 const LigneSpec& specForLigne(LigneId id);
@@ -27,3 +28,10 @@ const char* nomForLigne(LigneId id);
 
 // Couleur a afficher a l'instant nowMs (gere l'alternance des lignes concernees).
 LineColor colorForLigne(LigneId id, uint32_t nowMs);
+
+namespace Colors {
+  void begin();
+  void setSpec(LigneId id, LineColor primaire, LineColor secondaire, bool alterne);
+  void saveToNvs();
+  void resetDefaults();
+}

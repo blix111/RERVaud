@@ -1,8 +1,8 @@
 #pragma once
 #include <Arduino.h>
 
-enum class ButtonId : uint8_t { ENCODER, NAV2 };
-enum class ButtonEventType : uint8_t { SHORT_PRESS, LONG_PRESS };
+enum class ButtonId : uint8_t { ENCODER, NAV2, BOTH };
+enum class ButtonEventType : uint8_t { SHORT_PRESS, LONG_PRESS, HOLD_3S, HOLD_ROTATE };
 
 struct ButtonEvent {
   ButtonId button;

@@ -1,0 +1,9 @@
+.pio/build/calib/FrameworkArduino/MacAddress.cpp.o: \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/MacAddress.cpp \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/MacAddress.h \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/WString.h \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/pgmspace.h \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/Printable.h \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/Print.h \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/WString.h \
+ C:/Users/jval/.platformio/packages/framework-arduinoespressif32/cores/esp32/Printable.h

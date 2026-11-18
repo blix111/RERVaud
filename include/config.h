@@ -18,7 +18,7 @@
 #define MAX_LEDS_PER_BUS 250
 
 #define NUM_BUSES 4
-#define LED_BRIGHTNESS 30 // Bridage logiciel doux (~30/255) pour protéger l'USB
+#define LED_BRIGHTNESS 15 // Bridage logiciel doux (~15% par défaut) pour confort visuel et protéger l'USB
 
 // --- Interface utilisateur (INPUT_PULLUP, actifs LOW) ---
 #define PIN_ENCODER_A   10

@@ -1,6 +1,8 @@
 #pragma once
+#include <Arduino.h>
 
 namespace ModePmr {
   void begin();
-  void render(); // Phase 3 : affichage statique du niveau d'accessibilité (Gare::niveauPMR)
+  void render();
+  void handleEncoderDelta(int delta);
 }

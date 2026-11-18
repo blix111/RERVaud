@@ -3,8 +3,10 @@
 #include "config.h"
 #include <string.h>
 #include <ctype.h>
+#include <Preferences.h>
 
 namespace {
+  uint8_t g_level = 4;
   uint16_t charTo14Seg(char c) {
     switch (toupper(c)) {
       case '0': return 0x0C3F; case '1': return 0x0006; case '2': return 0x00DB;
@@ -19,7 +21,8 @@ namespace {
       case 'R': return 0x20F3; case 'S': return 0x00ED; case 'T': return 0x1201;
       case 'U': return 0x003E; case 'V': return 0x0C30; case 'W': return 0x2836;
       case 'X': return 0x2D00; case 'Y': return 0x1500; case 'Z': return 0x0C09;
-      case '-': return 0x00C0; case ' ': default: return 0x0000;
+      case '-': return 0x00C0; case '/': return 0x0C00;
+      case '%': return 0x0CED; case ' ': default: return 0x0000;
     }
   }
 
@@ -60,8 +63,37 @@ namespace DisplayDriver {
     Wire.setClock(50000);
     Wire.beginTransmission(DISPLAY_I2C_ADDR); Wire.write(0x21); Wire.endTransmission(); delay(20);
     Wire.beginTransmission(DISPLAY_I2C_ADDR); Wire.write(0xA0); Wire.endTransmission();
-    Wire.beginTransmission(DISPLAY_I2C_ADDR); Wire.write(0xEA); Wire.endTransmission();
+    Preferences prefs;
+    prefs.begin("trainboard", true);
+    uint8_t lvl = prefs.getUChar("dbright", 4); // niveau 0..15 sauvegardé
+    prefs.end();
+    setBrightness(lvl);
     Wire.beginTransmission(DISPLAY_I2C_ADDR); Wire.write(0x81); Wire.endTransmission();
+  }
+
+  void setBrightness(uint8_t level0to15) {
+    if (level0to15 > 15) level0to15 = 15;
+    g_level = level0to15;
+    Wire.beginTransmission(DISPLAY_I2C_ADDR);
+    Wire.write(0xE0 | level0to15);
+    Wire.endTransmission();
+  }
+
+  uint8_t getBrightness() {
+    return g_level;
+  }
+
+  void saveBrightness() {
+    Preferences prefs;
+    prefs.begin("trainboard", false);
+    prefs.putUChar("dbright", g_level);
+    prefs.end();
+  }
+
+  void setBrightnessPercent(uint8_t percent) {
+    if (percent > 100) percent = 100;
+    uint8_t level = (uint16_t)percent * 15 / 100;
+    setBrightness(level);
   }
 
   void showText(const char* text4) {
