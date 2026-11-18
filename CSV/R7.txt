@@ -1,0 +1,7 @@
+R7
+
+bus,index,type,lignes,gare_amont,gare_aval
+2,25,TRONCON,R7,PUID,VEVE
+2,26,TRONCON,R7,PUID,VEVE
+2,27,TRONCON,R7,PUID,VEVE
+2,28,TRONCON,R7,PUID,VEVE
